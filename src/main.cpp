@@ -354,14 +354,12 @@ void drawI()
 
 void drawJ()
 {
-  penUp();
-  moveXY_DDA(LETTER_W, LETTER_H, 1000);
+  float r = LETTER_H * 0.2;
   penDown();
-  moveXY_DDA(0, -LETTER_H * 0.8, 1000);
-  moveXY_DDA(-LETTER_W / 2, -LETTER_H * 0.2, 1000);
-  moveXY_DDA(-LETTER_W / 2, LETTER_H * 0.2, 1000);
+  drawArc(r, PI, 2 * PI, 15, STEP_DELAY_US);
+  moveXY_DDA(0, LETTER_H * 0.7, STEP_DELAY_US); // Stamm
   penUp();
-  moveXY_DDA(LETTER_W + SPACE_W, 0, 1000);
+  moveXY_DDA(SPACE_W, -(LETTER_H * 0.7 + LETTER_H / 4), STEP_DELAY_US);
 }
 
 void drawK()
@@ -579,14 +577,23 @@ void drawZ()
 
 void drawa()
 {
-  float r = LETTER_H * 0.35;
+  float r = LETTER_H * 0.25;
+
+  // Start rechts oben vom Kreis
   penUp();
-  moveXY_DDA(r * 2, LETTER_H * 0.7, STEP_DELAY_US);
+  moveXY_DDA(r * 2, LETTER_H * 0.5, STEP_DELAY_US);
+
+  // Kreis (unterer Teil)
   penDown();
-  drawArc(r, PI / 2, 5 * PI / 2, 60, STEP_DELAY_US);
-  moveXY_DDA(0, -r, STEP_DELAY_US);
+  drawArc(r, 0, 2 * PI, 40, STEP_DELAY_US);
   penUp();
-  moveXY_DDA(SPACE_W, r, STEP_DELAY_US);
+  moveXY_DDA(0, -LETTER_H * 0.3, STEP_DELAY_US);
+  penDown();
+
+  moveXY_DDA(0, LETTER_H * 0.6, STEP_DELAY_US);
+
+  penUp();
+  moveXY_DDA(SPACE_W, -LETTER_H, STEP_DELAY_US);
 }
 
 void drawb()
@@ -661,15 +668,18 @@ void drawf()
 
 void drawg()
 {
-  float r = LETTER_H * 0.35;
+  float r = LETTER_H * 0.2;
   penUp();
-  moveXY_DDA(r * 2, LETTER_H * 0.7, STEP_DELAY_US);
+  moveXY_DDA(0, -LETTER_H * 0.2, STEP_DELAY_US);
   penDown();
-  drawArc(r, PI / 2, 5 * PI / 2, 60, STEP_DELAY_US);   // Kreis
-  moveXY_DDA(0, -(LETTER_H * 0.4 + r), STEP_DELAY_US); // Unterlänge
-  drawArc(r, -PI / 2, PI / 2, 30, STEP_DELAY_US);      // Haken unten
+  drawArc(r, PI, 2 * PI, 15, STEP_DELAY_US);
+  moveXY_DDA(0, LETTER_H * 0.7, STEP_DELAY_US); // Stamm
   penUp();
-  moveXY_DDA(SPACE_W, LETTER_H * 0.4, STEP_DELAY_US);
+  moveXY_DDA(0, -LETTER_H * 0.2, STEP_DELAY_US);
+  penDown();
+  drawArc(r, 0, 2 * PI, 15, STEP_DELAY_US);
+  penUp();
+  moveXY_DDA(SPACE_W, -(LETTER_H * 0.333), STEP_DELAY_US);
 }
 
 void drawh()
@@ -702,18 +712,16 @@ void drawi()
 
 void drawj()
 {
-  penUp();
-  moveXY_DDA(LETTER_W * 0.75, LETTER_H * 0.75, STEP_DELAY_US);
+  float r = LETTER_H * 0.15;
   penDown();
-  moveXY_DDA(0, -(LETTER_H * 0.75 + LETTER_H * 0.4), STEP_DELAY_US); // Stamm + Unterlänge
-  float r = LETTER_H * 0.25;
-  drawArc(r, -PI / 2, PI / 2, 30, STEP_DELAY_US); // Haken links
+  drawArc(r, PI * 1.4, 2 * PI, 15, STEP_DELAY_US);
+  moveXY_DDA(0, LETTER_H * 0.5, STEP_DELAY_US); // Stamm
   penUp();
-  moveXY_DDA(-LETTER_W * 0.25, LETTER_H * 0.95, STEP_DELAY_US);
+  moveXY_DDA(0, LETTER_H / 4, STEP_DELAY_US);
   penDown();
   moveXY_DDA(0, LETTER_H * 0.05, STEP_DELAY_US); // Punkt
   penUp();
-  moveXY_DDA(LETTER_W * 0.5 + SPACE_W, -LETTER_H * 1.05, STEP_DELAY_US);
+  moveXY_DDA(LETTER_W / 2 + SPACE_W, -(LETTER_H * 0.5 + LETTER_H / 4), STEP_DELAY_US);
 }
 
 void drawk()
@@ -721,10 +729,10 @@ void drawk()
   penDown();
   moveXY_DDA(0, LETTER_H, STEP_DELAY_US);
   penUp();
-  moveXY_DDA(LETTER_W * 0.7, 0, STEP_DELAY_US);
+  moveXY_DDA(LETTER_W * 0.3, -LETTER_H * 0.5, STEP_DELAY_US);
   penDown();
-  moveXY_DDA(-LETTER_W * 0.7, -LETTER_H * 0.5, STEP_DELAY_US);
-  moveXY_DDA(LETTER_W * 0.7, -LETTER_H * 0.5, STEP_DELAY_US);
+  moveXY_DDA(-LETTER_W * 0.3, -LETTER_H * 0.25, STEP_DELAY_US);
+  moveXY_DDA(LETTER_W * 0.3, -LETTER_H * 0.25, STEP_DELAY_US);
   penUp();
   moveXY_DDA(SPACE_W, 0, STEP_DELAY_US);
 }
@@ -777,7 +785,7 @@ void drawo()
 {
   float r = LETTER_H * 0.3;
   penUp();
-  moveXY_DDA(2*r, r, STEP_DELAY_US);
+  moveXY_DDA(2 * r, r, STEP_DELAY_US);
   penDown();
   drawArc(r, 0, 2 * PI, 20, STEP_DELAY_US);
   penUp();
@@ -792,9 +800,9 @@ void drawp()
   drawArc(r, -PI / 2, PI / 2, 30, 1000); // untere Rundung
   moveXY_DDA(-LETTER_W / 6, 0, 1000);
   moveXY_DDA(0, -LETTER_H, 1000);
-  moveXY_DDA(0, LETTER_H - 2*r, 1000);
+  moveXY_DDA(0, LETTER_H - 2 * r, 1000);
   penUp();
-  moveXY_DDA(2*r + SPACE_W, 0, 1000);
+  moveXY_DDA(2 * r + SPACE_W, 0, 1000);
 }
 
 void drawq()
@@ -805,9 +813,9 @@ void drawq()
   drawArc(r, (PI * 3) / 2, PI / 2, 30, 1000); // untere Rundung
   moveXY_DDA(LETTER_W / 6, 0, 1000);
   moveXY_DDA(0, -LETTER_H, 1000);
-  moveXY_DDA(0, LETTER_H - 2*r, 1000);
+  moveXY_DDA(0, LETTER_H - 2 * r, 1000);
   penUp();
-  moveXY_DDA(2*r + SPACE_W, 0, 1000);
+  moveXY_DDA(2 * r + SPACE_W, 0, 1000);
 }
 
 void drawr()
@@ -841,14 +849,14 @@ void drawt()
 {
   float r = LETTER_H * 0.1;
   penUp();
-  moveXY_DDA(LETTER_W * 0.4, LETTER_H, STEP_DELAY_US);
+  moveXY_DDA(LETTER_W * 0.5, LETTER_H, STEP_DELAY_US);
   penDown();
   moveXY_DDA(0, -(LETTER_H - r), STEP_DELAY_US);
-  drawArc(r, PI, 0, 15, STEP_DELAY_US); // Fußhaken
+  drawArc(r, PI, 2 * PI, 15, STEP_DELAY_US); // Fußhaken
   penUp();
   moveXY_DDA(-LETTER_W * 0.4 - r, LETTER_H * 0.65, STEP_DELAY_US);
   penDown();
-  moveXY_DDA(LETTER_W * 0.8, 0, STEP_DELAY_US); // Querstrich
+  moveXY_DDA(LETTER_W * 0.5, 0, STEP_DELAY_US); // Querstrich
   penUp();
   moveXY_DDA(LETTER_W * 0.2 + r + SPACE_W, -LETTER_H * 0.65, STEP_DELAY_US);
 }
@@ -910,19 +918,16 @@ void drawx()
 
 void drawy()
 {
-  float r = LETTER_H * 0.25;
   penUp();
-  moveXY_DDA(0, LETTER_H * 0.7, STEP_DELAY_US);
+  moveXY_DDA(LETTER_W / 3, -LETTER_H / 2, STEP_DELAY_US);
   penDown();
-  moveXY_DDA(LETTER_W / 2, -LETTER_H * 0.35, STEP_DELAY_US);
-  moveXY_DDA(LETTER_W / 2, LETTER_H * 0.35, STEP_DELAY_US);
+  moveXY_DDA(LETTER_W / 3, LETTER_H, STEP_DELAY_US);
   penUp();
-  moveXY_DDA(-LETTER_W / 2, -LETTER_H * 0.35, STEP_DELAY_US);
+  moveXY_DDA(-LETTER_W / 2, 0, STEP_DELAY_US);
   penDown();
-  moveXY_DDA(0, -(LETTER_H * 0.35 + LETTER_H * 0.4), STEP_DELAY_US); // Unterlänge
-  drawArc(r, -PI / 2, PI / 2, 20, STEP_DELAY_US);
+  moveXY_DDA(LETTER_W / 3, -LETTER_H / 2, STEP_DELAY_US);
   penUp();
-  moveXY_DDA(LETTER_W / 2 + SPACE_W, LETTER_H * 0.4, STEP_DELAY_US);
+  moveXY_DDA(LETTER_W / 3 + SPACE_W, 0, STEP_DELAY_US);
 }
 
 void drawz()
@@ -1164,7 +1169,7 @@ void loop()
       {
         continue;
       }
-      else if ((c >= 'A' && c <= 'Z') && (!settings) || (c >= 'a' && c <= 'z'))
+      else if (!settings)
         drawLetter(c); // Buchstaben zeichnen
     }
 

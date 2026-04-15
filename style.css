@@ -1,0 +1,244 @@
+/*google font*/
+@import url("https://fonts.googleapis.com/css2?family=Bungee&display=swap");
+
+body {
+  display: flex;
+  min-height: 100vh;
+  font-family: "Bungee", sans-serif;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  overflow-x: hidden;
+}
+
+/* Sidebar */
+#sidebar {
+  width: 250px;
+  background-color: #f8f9fa;
+  position: relative;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column; /*stacks everything*/
+}
+
+#sidebar.hidden {
+  width: 0;
+  overflow: hidden;
+}
+
+#Account {
+  margin-top: auto;
+  padding: 1rem; /* 16pixels by default */
+}
+
+/* New chat button */
+.new-chat-btn {
+  margin: 0.75rem 1rem 0;
+  padding: 0.7rem 1rem;
+  border: none;
+  border-radius: 16px;
+  background: #5b9bff;
+  color: #ffffff;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 0 8px 16px rgba(91, 155, 255, 0.25);
+  min-width: 220px;
+}
+
+/* Account section */
+.account-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.account-label {
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  color: #a1a7b3;
+}
+
+.profile-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  border: none;
+  background: transparent;
+  color: #3b4252;
+  padding: 0.4rem 0.2rem;
+}
+
+.profile-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  background: #e8f0ff;
+  color: #4d7dff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+}
+
+/* Main Content */
+#mainContent {
+  flex: 1;
+  position: relative;
+  transition: all 0.3s ease;
+  min-width: 0;
+}
+
+/* Toggle buttons */
+#toggleBtn,
+#openSidebarBtn {
+  position: fixed;
+  top: 0;
+  left: 0;
+  /*bc its layed over the Sidebar, id needs the Z-index for clickability*/
+  z-index: 10;
+}
+
+/* Textarea - always centered */
+.textarea {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+textarea {
+  font-family: "Bungee", sans-serif;
+}
+
+.textarea.prompt-sent {
+  justify-content: flex-end;
+  padding-bottom: 4rem;
+}
+.textarea-wrapper {
+  position: relative;
+  display: inline-block; /*resizes the content to match the div*/
+}
+
+.textarea-wrapper textarea {
+  display: block;
+  padding-bottom: 2.5rem; /* prevents text going behind the button */
+  border-radius: 12px;
+  resize: none;
+  padding-left: 10px;
+  padding-top: 10px;
+}
+
+#sendMsg {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background-color: black;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/*same as sendMsg just to the left*/
+#moreFeatures {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  background: none;
+  color: black;
+  border: none;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1.5rem;
+}
+
+.hideFeatures {
+  display: none;
+}
+
+/* The Prompt of the User*/
+.userMsg {
+  background-color: #0084ff;
+  color: white;
+  align-self: flex-end;
+  border-radius: 18px 18px 4px 18px;
+  padding: 10px 15px;
+  max-width: 70%;
+  margin-bottom: 8px;
+}
+
+/* The Response */
+.botMsg {
+  background-color: #e9e9eb;
+  color: black;
+  align-self: flex-start;
+  border-radius: 18px 18px 18px 4px;
+  padding: 10px 15px;
+  max-width: 70%;
+  margin-bottom: 8px;
+}
+
+#chatHistory {
+  margin-top: 50px;
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 900px;
+  bottom: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+#newChatBtn {
+  margin-top: 5rem;
+}
+
+.AccountBtn {
+  border: none;
+  text-align: center;
+  margin-left: 5px;
+  color: black;
+  background-color: #f8f9fa;
+  font-size: 13px;
+  font-family: "Noto Sans", sans-serif;
+  font-weight: 600;
+}
+
+.setting-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  background: #e8f0ff;
+  color: #4d7dff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+}
+
+.account-div {
+  min-width: 250px;
+}
+

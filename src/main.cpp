@@ -184,6 +184,7 @@ void setup()
   pinMode(ENABLE2_PIN, OUTPUT);
 
   pinMode(Sensor1, INPUT);
+  pinMode(Sensor2, INPUT);
 
   digitalWrite(ENABLE1_PIN, LOW);
   digitalWrite(ENABLE2_PIN, LOW);
@@ -206,6 +207,11 @@ void setup()
   {
     moveXY_DDA(-1, 0, 1000);
   }
+  while (!digitalRead(Sensor2))
+  {
+    moveXY_DDA(0, 1, 1000);
+  }
+  moveXY_DDA(0, -LETTER_H, STEP_DELAY_US);
 
   motorsDisable();
 }
@@ -232,7 +238,7 @@ void drawA()
   penDown();
   moveXY_DDA(LETTER_W / 4, 0, 1000);
   penUp();
-  moveXY_DDA(LETTER_W * 0.75 + SPACE_W, -LETTER_H * 0.5, 1000);
+  moveXY_DDA(SPACE_W, -LETTER_H * 0.5, 1000);
 }
 
 void drawB()
@@ -250,7 +256,7 @@ void drawB()
   moveXY_DDA(-LETTER_W / 6, 0, 1000);
   delay(300);
   penUp();
-  moveXY_DDA(LETTER_W + SPACE_W, 0, 1000);
+  moveXY_DDA(SPACE_W, 0, 1000);
 }
 
 void drawC()
@@ -265,7 +271,7 @@ void drawC()
   drawArc(r, PI / 2, 3 * PI / 2, 30, 800);
   moveXY_DDA(LETTER_W / 6, 0, 800);
   penUp();
-  moveXY_DDA(r + SPACE_W, 0, 1000);
+  moveXY_DDA(SPACE_W, 0, 1000);
 }
 
 void drawD()
@@ -316,7 +322,7 @@ void drawG()
   float r = LETTER_H / 2;
 
   penUp();
-  moveXY_DDA(r, r, 800);
+  moveXY_DDA(r + LETTER_W / 2, r, 800);
 
   penDown();
   drawArc(r, 0.3, 2 * PI - 0.3, 80, 800);
@@ -420,7 +426,7 @@ void drawO()
   float r = LETTER_H / 2;
 
   penUp();
-  moveXY_DDA(r, r, 800);
+  moveXY_DDA(r + LETTER_W, r, 800);
 
   penDown();
   drawArc(r, 0, 2 * PI, 120, 800);
@@ -451,7 +457,7 @@ void drawQ()
   moveXY_DDA(0, LETTER_H / 2, 1000);
 
   penUp();
-  moveXY_DDA(r, 0, 800);
+  moveXY_DDA(r + LETTER_W, 0, 800);
 
   penDown();
   drawArc(r, 0, 2 * PI, 120, 800);
@@ -461,7 +467,7 @@ void drawQ()
   moveXY_DDA(r / 3, -r / 3, 800);
 
   penUp();
-  moveXY_DDA(r + SPACE_W, r / 3, 1000);
+  moveXY_DDA(r + SPACE_W, -0.1, 1000);
 }
 
 void drawR()
@@ -590,7 +596,7 @@ void drawa()
 
   // Start rechts oben vom Kreis
   penUp();
-  moveXY_DDA(r * 2, LETTER_H * 0.3, STEP_DELAY_US);
+  moveXY_DDA(r * 2, LETTER_H * 0.2, STEP_DELAY_US);
 
   // Kreis (unterer Teil)
   penDown();
@@ -914,15 +920,15 @@ void draww()
 void drawx()
 {
   penUp();
-  moveXY_DDA(0, LETTER_H * 0.7, STEP_DELAY_US);
+  moveXY_DDA(0, LETTER_H * 0.5, STEP_DELAY_US);
   penDown();
-  moveXY_DDA(LETTER_W * 0.8, -LETTER_H * 0.7, STEP_DELAY_US);
+  moveXY_DDA(LETTER_W * 0.6, -LETTER_H * 0.5, STEP_DELAY_US);
   penUp();
-  moveXY_DDA(-LETTER_W * 0.8, 0, STEP_DELAY_US);
+  moveXY_DDA(-LETTER_W * 0.6, 0, STEP_DELAY_US);
   penDown();
-  moveXY_DDA(LETTER_W * 0.8, LETTER_H * 0.7, STEP_DELAY_US);
+  moveXY_DDA(LETTER_W * 0.6, LETTER_H * 0.5, STEP_DELAY_US);
   penUp();
-  moveXY_DDA(SPACE_W, -LETTER_H * 0.7, STEP_DELAY_US);
+  moveXY_DDA(SPACE_W, -LETTER_H * 0.5, STEP_DELAY_US);
 }
 
 void drawy()

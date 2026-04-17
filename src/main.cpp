@@ -228,6 +228,265 @@ void newLine()
   currentX = 0.0;
 }
 
+void draw0()
+{
+  float r = LETTER_H / 2;
+  penUp();
+  moveXY_DDA(r, r, STEP_DELAY_US);
+  penDown();
+  drawArc(r, 0, 2 * PI, 80, STEP_DELAY_US);
+  penUp();
+  moveXY_DDA(r + SPACE_W, -r, STEP_DELAY_US);
+}
+
+void draw1()
+{
+  penDown();
+  moveXY_DDA(0, LETTER_H, STEP_DELAY_US);
+  moveXY_DDA(-LETTER_W / 3, -LETTER_H / 4, STEP_DELAY_US);
+  penUp();
+  moveXY_DDA(LETTER_W / 2 + SPACE_W, -LETTER_H, STEP_DELAY_US);
+}
+
+void draw2()
+{
+  float r = LETTER_H / 4;
+  penUp();
+  moveXY_DDA(0, LETTER_H * 1.5, STEP_DELAY_US);
+  penDown();
+  drawArc(r, PI, 0, 30, STEP_DELAY_US);
+  moveXY_DDA(-2 * r, -LETTER_H / 2, STEP_DELAY_US);
+  moveXY_DDA(2*r, 0, STEP_DELAY_US);
+  penUp();
+  moveXY_DDA(SPACE_W, 0, STEP_DELAY_US);
+}
+
+void draw3()
+{
+  float r = LETTER_H / 4;
+  penUp();
+  moveXY_DDA(0, LETTER_H, STEP_DELAY_US);
+  penDown();
+  moveXY_DDA(LETTER_W / 4, 0, STEP_DELAY_US);
+  drawArc(r, PI / 2, -PI / 2, 30, STEP_DELAY_US);
+  drawArc(r, PI / 2, -PI / 2, 30, STEP_DELAY_US);
+  moveXY_DDA(-LETTER_W / 4, 0, STEP_DELAY_US);
+  penUp();
+  moveXY_DDA(LETTER_W / 4, 0, STEP_DELAY_US);
+  moveXY_DDA(LETTER_W / 2 + SPACE_W, -LETTER_H, STEP_DELAY_US);
+}
+
+void draw4()
+{
+  penUp();
+  moveXY_DDA(0, LETTER_H, STEP_DELAY_US);
+  penDown();
+  moveXY_DDA(0, -LETTER_H / 2, STEP_DELAY_US);
+  moveXY_DDA(LETTER_W / 2, 0, STEP_DELAY_US);
+  penUp();
+  moveXY_DDA(-LETTER_W / 4, LETTER_H / 2, STEP_DELAY_US);
+  penDown();
+  moveXY_DDA(0, -LETTER_H, STEP_DELAY_US);
+  penUp();
+  moveXY_DDA(LETTER_W / 6 + SPACE_W, 0, STEP_DELAY_US);
+}
+
+void draw5()
+{
+  float r = LETTER_H / 5;
+  penDown();
+  moveXY_DDA(LETTER_W / 4, 0, STEP_DELAY_US);
+  drawArc(r, -PI / 2, PI / 2, 20, STEP_DELAY_US);
+  moveXY_DDA(-LETTER_W / 4, 0, STEP_DELAY_US);
+  moveXY_DDA(0, LETTER_H / 3, STEP_DELAY_US);
+  moveXY_DDA(1.7 * r, 0, STEP_DELAY_US);
+  penUp();
+  moveXY_DDA(SPACE_W, -LETTER_H, STEP_DELAY_US);
+}
+
+void draw6()
+{
+  float r = LETTER_H / 4;
+  
+  moveXY_DDA(r, 0, STEP_DELAY_US);
+  penDown();
+  drawArc(r, PI*3/2, -PI / 2, 20, STEP_DELAY_US);
+  penUp();
+  drawArc(r, -PI / 2, PI, 20, STEP_DELAY_US);
+  penDown();
+  moveXY_DDA(0, LETTER_H / 3, STEP_DELAY_US);
+  drawArc(r, PI, PI * 0.2, 20, STEP_DELAY_US);
+  penUp();
+  moveXY_DDA(SPACE_W, -LETTER_H - r, STEP_DELAY_US);
+
+}
+
+void draw7()
+{
+  penDown();
+  moveXY_DDA(LETTER_W, LETTER_H, STEP_DELAY_US);
+  moveXY_DDA(-LETTER_W, 0, STEP_DELAY_US);
+  penUp();
+  moveXY_DDA(SPACE_W, -LETTER_H, STEP_DELAY_US);
+}
+
+void draw8()
+{
+  float r = LETTER_H / 4;
+  penUp();
+  moveXY_DDA(r, LETTER_H * 0.75, STEP_DELAY_US);
+  penDown();
+  drawArc(r, 0, 2 * PI, 40, STEP_DELAY_US);
+  penUp();
+  moveXY_DDA(0, -LETTER_H / 2, STEP_DELAY_US);
+  penDown();
+  drawArc(r, 0, 2 * PI, 40, STEP_DELAY_US);
+  penUp();
+  moveXY_DDA(r + SPACE_W, -LETTER_H / 4, STEP_DELAY_US);
+}
+
+void draw9()
+{
+  float r = LETTER_H / 4;
+  penUp();
+  moveXY_DDA(r, LETTER_H / 2, STEP_DELAY_US);
+  penDown();
+  drawArc(r, 0, 2 * PI, 40, STEP_DELAY_US);
+  moveXY_DDA(0, LETTER_H / 2, STEP_DELAY_US);
+  penUp();
+  moveXY_DDA(r + SPACE_W, -LETTER_H, STEP_DELAY_US);
+}
+
+void drawDot()
+{
+  penDown();
+  moveXY_DDA(0, 0.1, STEP_DELAY_US);
+  penUp();
+  moveXY_DDA(SPACE_W, 0, STEP_DELAY_US);
+}
+
+void drawComma()
+{
+  penDown();
+  moveXY_DDA(0.1, -0.2, STEP_DELAY_US);
+  penUp();
+  moveXY_DDA(SPACE_W, 0.2, STEP_DELAY_US);
+}
+
+void drawExclamation()
+{
+  penDown();
+  moveXY_DDA(0, LETTER_H * 0.8, STEP_DELAY_US);
+  penUp();
+  moveXY_DDA(0, -LETTER_H * 0.9, STEP_DELAY_US);
+  penDown();
+  moveXY_DDA(0, 0.1, STEP_DELAY_US);
+  penUp();
+  moveXY_DDA(SPACE_W, 0, STEP_DELAY_US);
+}
+
+void drawQuestion()
+{
+  float r = LETTER_H / 4;
+  penUp();
+  moveXY_DDA(0, LETTER_H, STEP_DELAY_US);
+  penDown();
+  drawArc(r, PI, 2 * PI, 20, STEP_DELAY_US);
+  moveXY_DDA(0, -LETTER_H / 2, STEP_DELAY_US);
+  penUp();
+  moveXY_DDA(0, -LETTER_H / 2, STEP_DELAY_US);
+  penDown();
+  moveXY_DDA(0, 0.1, STEP_DELAY_US);
+  penUp();
+  moveXY_DDA(SPACE_W, 0, STEP_DELAY_US);
+}
+
+void drawColon()
+{
+  drawDot();
+  moveXY_DDA(-SPACE_W, LETTER_H / 2, STEP_DELAY_US);
+  drawDot();
+}
+
+void drawEqual()
+{
+  penDown();
+  moveXY_DDA(LETTER_W, 0, STEP_DELAY_US);
+  penUp();
+  moveXY_DDA(-LETTER_W, LETTER_H / 3, STEP_DELAY_US);
+  penDown();
+  moveXY_DDA(LETTER_W, 0, STEP_DELAY_US);
+  penUp();
+  moveXY_DDA(SPACE_W, -LETTER_H / 3, STEP_DELAY_US);
+}
+
+void drawPlus()
+{
+  penDown();
+  moveXY_DDA(LETTER_W, 0, STEP_DELAY_US);
+  penUp();
+  moveXY_DDA(-LETTER_W / 2, LETTER_H / 2, STEP_DELAY_US);
+  penDown();
+  moveXY_DDA(0, -LETTER_H, STEP_DELAY_US);
+  penUp();
+  moveXY_DDA(LETTER_W / 2 + SPACE_W, LETTER_H / 2, STEP_DELAY_US);
+}
+
+void drawMinus()
+{
+  penDown();
+  moveXY_DDA(LETTER_W, 0, STEP_DELAY_US);
+  penUp();
+  moveXY_DDA(SPACE_W, 0, STEP_DELAY_US);
+}
+
+
+void drawSlash()
+{
+  penDown();
+  moveXY_DDA(LETTER_W, LETTER_H, STEP_DELAY_US);
+  penUp();
+}
+void drawPercent()
+{
+  drawSlash();
+  moveXY_DDA(-LETTER_W, LETTER_H, STEP_DELAY_US);
+  drawDot();
+  moveXY_DDA(LETTER_W, -LETTER_H, STEP_DELAY_US);
+  drawDot();
+}
+
+
+void drawParenthesisOpen()
+{
+  float r = LETTER_H / 2;
+  penDown();
+  drawArc(r, PI / 2, 3 * PI / 2, 30, STEP_DELAY_US);
+  penUp();
+  moveXY_DDA(SPACE_W, 0, STEP_DELAY_US);
+}
+
+void drawParenthesisClose()
+{
+  float r = LETTER_H / 2;
+  penDown();
+  drawArc(r, -PI / 2, PI / 2, 30, STEP_DELAY_US);
+  penUp();
+  moveXY_DDA(SPACE_W, 0, STEP_DELAY_US);
+}
+
+void drawQuote()
+{
+  penDown();
+  moveXY_DDA(0, LETTER_H * 0.2, STEP_DELAY_US);
+  penUp();
+  moveXY_DDA(SPACE_W / 2, 0, STEP_DELAY_US);
+  penDown();
+  moveXY_DDA(0, LETTER_H * 0.2, STEP_DELAY_US);
+  penUp();
+  moveXY_DDA(SPACE_W, -LETTER_H * 0.2, STEP_DELAY_US);
+}
+
 void drawA()
 {
   penDown();
@@ -1121,6 +1380,74 @@ void drawLetter(char c)
     break;
   case 'z':
     drawz();
+    break;
+
+  case '0':
+    draw0();
+    break;
+  case '1':
+    draw1();
+    break;
+  case '2':
+    draw2();
+    break;
+  case '3':
+    draw3();
+    break;
+  case '4':
+    draw4();
+    break;
+  case '5':
+    draw5();
+    break;
+  case '6':
+    draw6();
+    break;
+  case '7':
+    draw7();
+    break;
+  case '8':
+    draw8();
+    break;
+  case '9':
+    draw9();
+    break;
+
+  case '.':
+    drawDot();
+    break;
+  case ',':
+    drawComma();
+    break;
+  case '!':
+    drawExclamation();
+    break;
+  case '?':
+    drawQuestion();
+    break;
+  case ':':
+    drawColon();
+    break;
+  case '=':
+    drawEqual();
+    break;
+  case '+':
+    drawPlus();
+    break;
+  case '-':
+    drawMinus();
+    break;
+  case '%':
+    drawPercent();
+    break;
+  case '(':
+    drawParenthesisOpen();
+    break;
+  case ')':
+    drawParenthesisClose();
+    break;
+  case '"':
+    drawQuote();
     break;
 
   case ' ':

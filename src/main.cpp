@@ -230,13 +230,16 @@ void newLine()
 
 void draw0()
 {
-  float r = LETTER_H / 2;
+  float r = LETTER_H / 3;
   penUp();
-  moveXY_DDA(r, r, STEP_DELAY_US);
+  moveXY_DDA(0, r, STEP_DELAY_US);
   penDown();
-  drawArc(r, 0, 2 * PI, 80, STEP_DELAY_US);
+  drawArc(r, PI, 2 * PI, 20, STEP_DELAY_US);
+  moveXY_DDA(0, LETTER_H / 3, STEP_DELAY_US);
+  drawArc(r, 0, PI, 20, STEP_DELAY_US);
+  moveXY_DDA(0, -LETTER_H / 3, STEP_DELAY_US);
   penUp();
-  moveXY_DDA(r + SPACE_W, -r, STEP_DELAY_US);
+  moveXY_DDA(2 * r + SPACE_W, -r, STEP_DELAY_US);
 }
 
 void draw1()
@@ -256,7 +259,7 @@ void draw2()
   penDown();
   drawArc(r, PI, 0, 30, STEP_DELAY_US);
   moveXY_DDA(-2 * r, -LETTER_H / 2, STEP_DELAY_US);
-  moveXY_DDA(2*r, 0, STEP_DELAY_US);
+  moveXY_DDA(2 * r, 0, STEP_DELAY_US);
   penUp();
   moveXY_DDA(SPACE_W, 0, STEP_DELAY_US);
 }
@@ -307,10 +310,10 @@ void draw5()
 void draw6()
 {
   float r = LETTER_H / 4;
-  
+
   moveXY_DDA(r, 0, STEP_DELAY_US);
   penDown();
-  drawArc(r, PI*3/2, -PI / 2, 20, STEP_DELAY_US);
+  drawArc(r, PI * 3 / 2, -PI / 2, 20, STEP_DELAY_US);
   penUp();
   drawArc(r, -PI / 2, PI, 20, STEP_DELAY_US);
   penDown();
@@ -318,16 +321,15 @@ void draw6()
   drawArc(r, PI, PI * 0.2, 20, STEP_DELAY_US);
   penUp();
   moveXY_DDA(SPACE_W, -LETTER_H - r, STEP_DELAY_US);
-
 }
 
 void draw7()
 {
   penDown();
-  moveXY_DDA(LETTER_W, LETTER_H, STEP_DELAY_US);
+  moveXY_DDA(LETTER_W, LETTER_H * 0.7, STEP_DELAY_US);
   moveXY_DDA(-LETTER_W, 0, STEP_DELAY_US);
   penUp();
-  moveXY_DDA(SPACE_W, -LETTER_H, STEP_DELAY_US);
+  moveXY_DDA(SPACE_W, -LETTER_H * 0.7, STEP_DELAY_US);
 }
 
 void draw8()
@@ -348,13 +350,14 @@ void draw8()
 void draw9()
 {
   float r = LETTER_H / 4;
-  penUp();
-  moveXY_DDA(r, LETTER_H / 2, STEP_DELAY_US);
+
+  moveXY_DDA(0, r, STEP_DELAY_US);
   penDown();
-  drawArc(r, 0, 2 * PI, 40, STEP_DELAY_US);
-  moveXY_DDA(0, LETTER_H / 2, STEP_DELAY_US);
+  drawArc(r, PI * 1.1, 2 * PI, 20, STEP_DELAY_US);
+  moveXY_DDA(0, LETTER_H / 3, STEP_DELAY_US);
+  drawArc(r, 0, 2 * PI, 20, STEP_DELAY_US);
   penUp();
-  moveXY_DDA(r + SPACE_W, -LETTER_H, STEP_DELAY_US);
+  moveXY_DDA(SPACE_W, -LETTER_H / 3 - r, STEP_DELAY_US);
 }
 
 void drawDot()
@@ -368,9 +371,9 @@ void drawDot()
 void drawComma()
 {
   penDown();
-  moveXY_DDA(0.1, -0.2, STEP_DELAY_US);
+  moveXY_DDA(0.1, -0.15, STEP_DELAY_US);
   penUp();
-  moveXY_DDA(SPACE_W, 0.2, STEP_DELAY_US);
+  moveXY_DDA(SPACE_W, 0.15, STEP_DELAY_US);
 }
 
 void drawExclamation()
@@ -378,7 +381,7 @@ void drawExclamation()
   penDown();
   moveXY_DDA(0, LETTER_H * 0.8, STEP_DELAY_US);
   penUp();
-  moveXY_DDA(0, -LETTER_H * 0.9, STEP_DELAY_US);
+  moveXY_DDA(0, -LETTER_H, STEP_DELAY_US);
   penDown();
   moveXY_DDA(0, 0.1, STEP_DELAY_US);
   penUp();
@@ -403,59 +406,72 @@ void drawQuestion()
 
 void drawColon()
 {
-  drawDot();
-  moveXY_DDA(-SPACE_W, LETTER_H / 2, STEP_DELAY_US);
-  drawDot();
+  moveXY_DDA(0, LETTER_H / 4, STEP_DELAY_US);
+  penDown();
+  moveXY_DDA(0, 0.06, STEP_DELAY_US);
+  penUp();
+  moveXY_DDA(0, LETTER_H / 4, STEP_DELAY_US);
+  penDown();
+  moveXY_DDA(0, 0.06, STEP_DELAY_US);
+  penUp();
+  moveXY_DDA(SPACE_W, -(LETTER_H / 2 + 0.14), STEP_DELAY_US);
 }
 
 void drawEqual()
 {
+  moveXY_DDA(0, LETTER_H / 4, STEP_DELAY_US);
   penDown();
-  moveXY_DDA(LETTER_W, 0, STEP_DELAY_US);
+  moveXY_DDA(LETTER_W / 3, 0, STEP_DELAY_US);
   penUp();
-  moveXY_DDA(-LETTER_W, LETTER_H / 3, STEP_DELAY_US);
+  moveXY_DDA(-LETTER_W / 3, LETTER_H / 6, STEP_DELAY_US);
   penDown();
-  moveXY_DDA(LETTER_W, 0, STEP_DELAY_US);
+  moveXY_DDA(LETTER_W / 3, 0, STEP_DELAY_US);
   penUp();
-  moveXY_DDA(SPACE_W, -LETTER_H / 3, STEP_DELAY_US);
+  moveXY_DDA(SPACE_W, -(LETTER_H / 4 + LETTER_H / 6), STEP_DELAY_US);
 }
 
 void drawPlus()
 {
+  moveXY_DDA(0, LETTER_H / 2, STEP_DELAY_US);
   penDown();
-  moveXY_DDA(LETTER_W, 0, STEP_DELAY_US);
+  moveXY_DDA(LETTER_W / 3, 0, STEP_DELAY_US);
   penUp();
-  moveXY_DDA(-LETTER_W / 2, LETTER_H / 2, STEP_DELAY_US);
+  moveXY_DDA(-LETTER_W / 6, LETTER_H / 6, STEP_DELAY_US);
   penDown();
-  moveXY_DDA(0, -LETTER_H, STEP_DELAY_US);
+  moveXY_DDA(0, -LETTER_H / 3, STEP_DELAY_US);
   penUp();
-  moveXY_DDA(LETTER_W / 2 + SPACE_W, LETTER_H / 2, STEP_DELAY_US);
+  moveXY_DDA(LETTER_W / 6 + SPACE_W, -(LETTER_H / 2 - LETTER_H / 4), STEP_DELAY_US);
 }
 
 void drawMinus()
 {
+  moveXY_DDA(0, LETTER_H / 2, STEP_DELAY_US);
   penDown();
-  moveXY_DDA(LETTER_W, 0, STEP_DELAY_US);
+  moveXY_DDA(LETTER_W / 3, 0, STEP_DELAY_US);
   penUp();
-  moveXY_DDA(SPACE_W, 0, STEP_DELAY_US);
+  moveXY_DDA(0, -LETTER_H / 2, STEP_DELAY_US);
 }
-
 
 void drawSlash()
 {
   penDown();
-  moveXY_DDA(LETTER_W, LETTER_H, STEP_DELAY_US);
+  moveXY_DDA(LETTER_W / 2, LETTER_H, STEP_DELAY_US);
   penUp();
+  moveXY_DDA(SPACE_W, -LETTER_H, STEP_DELAY_US);
 }
 void drawPercent()
 {
   drawSlash();
-  moveXY_DDA(-LETTER_W, LETTER_H, STEP_DELAY_US);
-  drawDot();
-  moveXY_DDA(LETTER_W, -LETTER_H, STEP_DELAY_US);
-  drawDot();
+  moveXY_DDA(-(LETTER_W / 2 + SPACE_W), LETTER_H, STEP_DELAY_US);
+  penDown();
+  drawArc(0.05, 0, 2 * PI, 20, STEP_DELAY_US);
+  penUp();
+  moveXY_DDA(LETTER_W / 2, -(LETTER_H - 0.1), STEP_DELAY_US);
+  penDown();
+  drawArc(0.05, 0, 2 * PI, 20, STEP_DELAY_US);
+  penUp();
+  moveXY_DDA(SPACE_W, 0, STEP_DELAY_US);
 }
-
 
 void drawParenthesisOpen()
 {
@@ -477,14 +493,15 @@ void drawParenthesisClose()
 
 void drawQuote()
 {
+  moveXY_DDA(0, LETTER_H, STEP_DELAY_US);
   penDown();
-  moveXY_DDA(0, LETTER_H * 0.2, STEP_DELAY_US);
+  moveXY_DDA(0, -LETTER_H * 0.2, STEP_DELAY_US);
   penUp();
-  moveXY_DDA(SPACE_W / 2, 0, STEP_DELAY_US);
+  moveXY_DDA(SPACE_W / 2, LETTER_H * 0.2, STEP_DELAY_US);
   penDown();
-  moveXY_DDA(0, LETTER_H * 0.2, STEP_DELAY_US);
+  moveXY_DDA(0, -LETTER_H * 0.2, STEP_DELAY_US);
   penUp();
-  moveXY_DDA(SPACE_W, -LETTER_H * 0.2, STEP_DELAY_US);
+  moveXY_DDA(SPACE_W, -LETTER_H * 0.8, STEP_DELAY_US);
 }
 
 void drawA()
@@ -513,9 +530,8 @@ void drawB()
   moveXY_DDA(LETTER_W / 6, 0, 1000);
   drawArc(r, PI / 2, -PI / 2, 30, 1000); // untere Rundung
   moveXY_DDA(-LETTER_W / 6, 0, 1000);
-  delay(300);
   penUp();
-  moveXY_DDA(SPACE_W, 0, 1000);
+  moveXY_DDA(SPACE_W + LETTER_W / 6 + r, 0, 1000);
 }
 
 void drawC()
@@ -736,7 +752,6 @@ void drawR()
   penDown();
   moveXY_DDA(LETTER_W / 2, -LETTER_H / 2, 1000);
   penUp();
-  delay(100);
   moveXY_DDA(SPACE_W, 0, 1000);
 }
 
@@ -817,7 +832,6 @@ void drawX()
   penDown();
   moveXY_DDA(LETTER_W, -LETTER_H + LETTER_H / 4, 1000);
   penUp();
-  delay(100);
   moveXY_DDA(SPACE_W, 0, 1000);
 }
 
@@ -882,7 +896,6 @@ void drawb()
   moveXY_DDA(LETTER_W / 6, 0, 1000);
   drawArc(r, PI / 2, -PI / 2, 30, 1000); // untere Rundung
   moveXY_DDA(-LETTER_W / 6, 0, 1000);
-  delay(300);
   penUp();
   moveXY_DDA(LETTER_W / 2 + SPACE_W, 0, 1000);
 }

@@ -17,8 +17,8 @@
 #define SCL 22
 #define SDA 21
 // LEDs
-// #define LED_ON 26
-// #define LED_OFF 27
+#define LED_READY 26
+#define LED_BUSY 27
 // Taster
 #define Taster 36
 // Sensoren
@@ -27,7 +27,9 @@
 // Step settings
 #define STEPS_PER_MM 6.67
 #define STEPS_PER_CM (STEPS_PER_MM * 10.0)
-#define STEP_DELAY_US 800
+#define STEP_DELAY_US 900
+#define STEP_DELAY_US_FREE 400
+
 // Servo settings
 #define SERVO_UP 30
 #define SERVO_DOWN 90
@@ -191,8 +193,8 @@ void setup()
 
   pinMode(LED_BUILTIN, OUTPUT);
 
-  // pinMode(LED_OFF, OUTPUT);
-  // pinMode(LED_ON, OUTPUT);
+  pinMode(LED_BUSY, OUTPUT);
+  pinMode(LED_READY, OUTPUT);
 
   pinMode(SERVO_PIN, OUTPUT);
   digitalWrite(SERVO_PIN, LOW);
@@ -203,6 +205,9 @@ void setup()
 
   u8g2.begin();
 
+  digitalWrite(LED_READY, HIGH);
+  digitalWrite(LED_BUSY, LOW);
+
   while (!digitalRead(Sensor1))
   {
     moveXY_DDA(-1, 0, 1000);
@@ -211,7 +216,7 @@ void setup()
   {
     moveXY_DDA(0, 1, 1000);
   }
-  moveXY_DDA(0, -LETTER_H, STEP_DELAY_US);
+  moveXY_DDA(0, -LETTER_H * 1.5, STEP_DELAY_US);
 
   motorsDisable();
 }
@@ -1487,14 +1492,15 @@ void loop()
     u8g2.setFont(u8g2_font_ncenB08_tr); // Schriftart setzen
     u8g2.drawStr(0, 15, "Senden");      // Text zeichnen
     u8g2.sendBuffer();
+
     while (Serial.available())
     {
-      char c = Serial.read(); // Zeichenweise lesen
+      char c = Serial.read(); 
 
       char buffer[20];
 
-      // digitalWrite(LED_ON, HIGH);
-      // digitalWrite(LED_OFF, LOW);
+      digitalWrite(LED_BUSY, HIGH);
+      digitalWrite(LED_READY, LOW);
 
       sprintf(buffer, "Current: %c", c);
 
@@ -1530,6 +1536,6 @@ void loop()
     digitalWrite(BUILTIN_LED, LOW); // LED aus
     motorsDisable();
   }
-  // digitalWrite(LED_ON, LOW);
-  // digitalWrite(LED_OFF, HIGH);
+  digitalWrite(LED_BUSY, LOW);
+  digitalWrite(LED_READY, HIGH);
 }

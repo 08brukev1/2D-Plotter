@@ -1477,47 +1477,67 @@ void drawLetter(char c)
 
 void loop()
 {
-  u8g2.clearBuffer();                   // Buffer leeren
-  u8g2.setFont(u8g2_font_ncenB08_tr);   // Schriftart setzen
-  u8g2.drawStr(0, 15, "Ready to read"); // Text zeichnen
-  u8g2.drawStr(0, 35, "You can send!");
-  u8g2.sendBuffer(); // Buffer an Display senden
+  // === READY SCREEN ===
+  u8g2.clearBuffer();
+  u8g2.setFont(u8g2_font_ncenB14_tr);
+  u8g2.drawStr(0, 20, "Ready to");
+  u8g2.drawStr(0, 40, "read");
+  u8g2.setFont(u8g2_font_ncenB10_tr);
+  u8g2.drawStr(0, 60, "You can send!");
+  u8g2.sendBuffer();
 
   if (Serial.available())
   {
-    digitalWrite(BUILTIN_LED, HIGH); // LED an bei Empfang
+    digitalWrite(BUILTIN_LED, HIGH);
     motorsEnable();
 
-    u8g2.clearBuffer();                 // Buffer leeren
-    u8g2.setFont(u8g2_font_ncenB08_tr); // Schriftart setzen
-    u8g2.drawStr(0, 15, "Senden");      // Text zeichnen
+    // === SENDEN SCREEN ===
+    u8g2.clearBuffer();
+    u8g2.setFont(u8g2_font_ncenB14_tr);
+    u8g2.drawStr(0, 20, "Senden...");
     u8g2.sendBuffer();
 
     while (Serial.available())
     {
-      char c = Serial.read(); 
-
-      char buffer[20];
+      char c = Serial.read();
+      char bigCurrent[2] = {(c == ' ' ? '_' : c), '\0'}; // Leerzeichen → _
 
       digitalWrite(LED_BUSY, HIGH);
       digitalWrite(LED_READY, LOW);
 
-      sprintf(buffer, "Current: %c", c);
+      // Nächsten Buchstaben auslesen
+      char nextChar = '-';
+      if (Serial.available())
+        nextChar = Serial.peek();
 
-      u8g2.clearBuffer();                 // Buffer leeren
-      u8g2.setFont(u8g2_font_ncenB08_tr); // Schriftart setzen
-      u8g2.drawStr(0, 15, buffer);        // Text zeichnen
-      u8g2.sendBuffer();                  // Buffer an Display senden
+      char bigNext[2] = {(nextChar == ' ' ? '_' : nextChar), '\0'}; // Leerzeichen → _
 
+      // === DISPLAY AUFBAU ===
+      u8g2.clearBuffer();
+
+      // --- LINKS: Current ---
+      u8g2.setFont(u8g2_font_ncenB08_tr);
+      u8g2.drawStr(0, 10, "Current:");
+      u8g2.setFont(u8g2_font_ncenB24_tr);
+      u8g2.drawStr(0, 45, bigCurrent);
+
+      // Trennlinie in der Mitte
+      u8g2.drawLine(63, 0, 63, 64);
+
+      // --- RECHTS: Next ---
+      u8g2.setFont(u8g2_font_ncenB08_tr);
+      u8g2.drawStr(68, 10, "Next:");
+      u8g2.setFont(u8g2_font_ncenB24_tr);
+      u8g2.drawStr(68, 45, bigNext);
+
+      u8g2.sendBuffer();
+
+      // === LOGIK (unverändert) ===
       if (settings && (c != '{') && (c != '}'))
-      {
         wholeSetting = wholeSetting + c;
-      }
 
       if (c == '{')
-      {
         settings = true;
-      }
       else if (c == '}')
       {
         settings = false;
@@ -1526,16 +1546,15 @@ void loop()
         wholeSetting = "";
       }
       else if ((c == '\n' || c == '\r') && !settings)
-      {
         continue;
-      }
       else if (!settings)
-        drawLetter(c); // Buchstaben zeichnen
+        drawLetter(c);
     }
 
-    digitalWrite(BUILTIN_LED, LOW); // LED aus
+    digitalWrite(BUILTIN_LED, LOW);
     motorsDisable();
   }
+
   digitalWrite(LED_BUSY, LOW);
   digitalWrite(LED_READY, HIGH);
 }

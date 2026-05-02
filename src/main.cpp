@@ -55,6 +55,7 @@ bool countRealWidth = false;
 float maxWidth = 0.0;
 
 bool countPosition = false;
+bool writeStatus = true;
 
 // Servo Objekt
 Servo penServo;
@@ -82,6 +83,11 @@ void penDown()
 
 void moveXY_DDA(float x_cm, float y_cm, int stepDelayUs)
 {
+  MeinTaster.update();
+  if (MeinTaster.rose())
+  {
+    writeStatus = !writeStatus; 
+  }
   long stepsX = lround(fabs(x_cm * STEPS_PER_CM));
   long stepsY = lround(fabs(y_cm * STEPS_PER_CM));
 
@@ -1237,6 +1243,7 @@ void drawLetter(char c)
       break;
     }
   }
+
   countPosition = false;
   calculatedResetX = maxWidth - resetPositionX;
 
@@ -1252,21 +1259,7 @@ void loop()
 {
   MeinTaster.update();
 
-  if (MeinTaster.rose())
-  {
-    
-  }
-  
-  // === READY SCREEN ===
-  u8g2.clearBuffer();
-  u8g2.setFont(u8g2_font_ncenB14_tr);
-  u8g2.drawStr(0, 20, "Ready to");
-  u8g2.drawStr(0, 40, "read");
-  u8g2.setFont(u8g2_font_ncenB10_tr);
-  u8g2.drawStr(0, 60, "You can send!");
-  u8g2.sendBuffer();
-
-  if (Serial.available())
+  if (Serial.available() && writeStatus)
   {
     digitalWrite(BUILTIN_LED, HIGH);
     motorsEnable();
@@ -1277,67 +1270,80 @@ void loop()
     u8g2.drawStr(0, 20, "Senden...");
     u8g2.sendBuffer();
 
-    while (Serial.available())
+    char c = Serial.read();
+    char bigCurrent[2] = {(c == ' ' ? '_' : c), '\0'}; // Leerzeichen → _
+
+    Serial.println(c);
+
+    digitalWrite(LED_BUSY, HIGH);
+    digitalWrite(LED_READY, LOW);
+
+    // Nächsten Buchstaben auslesen
+    char nextChar = '-';
+    if (Serial.available())
+      nextChar = Serial.peek();
+
+    char bigNext[2] = {(nextChar == ' ' ? '_' : nextChar), '\0'}; // Leerzeichen → _
+
+    // === DISPLAY AUFBAU ===
+    u8g2.clearBuffer();
+
+    // --- LINKS: Current ---
+    u8g2.setFont(u8g2_font_ncenB08_tr);
+    u8g2.drawStr(0, 10, "Current:");
+    u8g2.setFont(u8g2_font_ncenB24_tr);
+    u8g2.drawStr(0, 45, bigCurrent);
+
+    // Trennlinie in der Mitte
+    u8g2.drawLine(63, 0, 63, 64);
+
+    // --- RECHTS: Next ---
+    u8g2.setFont(u8g2_font_ncenB08_tr);
+    u8g2.drawStr(68, 10, "Next:");
+    u8g2.setFont(u8g2_font_ncenB24_tr);
+    u8g2.drawStr(68, 45, bigNext);
+
+    u8g2.sendBuffer();
+
+    // === LOGIK (unverändert) ===
+    if (settings && (c != '{') && (c != '}'))
+      wholeSetting = wholeSetting + c;
+
+    if (c == '{')
+      settings = true;
+    else if (c == '}')
     {
-      char c = Serial.read();
-      char bigCurrent[2] = {(c == ' ' ? '_' : c), '\0'}; // Leerzeichen → _
+      settings = false;
+      LETTER_H = wholeSetting.toFloat();
+      LETTER_W = LETTER_H * 0.8;
+      LINE_H = LETTER_H * 1.6;
+      wholeSetting = "";
+    }else if (c == '\r'){
 
-      Serial.println(c);
-
-      digitalWrite(LED_BUSY, HIGH);
-      digitalWrite(LED_READY, LOW);
-
-      // Nächsten Buchstaben auslesen
-      char nextChar = '-';
-      if (Serial.available())
-        nextChar = Serial.peek();
-
-      char bigNext[2] = {(nextChar == ' ' ? '_' : nextChar), '\0'}; // Leerzeichen → _
-
-      // === DISPLAY AUFBAU ===
-      u8g2.clearBuffer();
-
-      // --- LINKS: Current ---
-      u8g2.setFont(u8g2_font_ncenB08_tr);
-      u8g2.drawStr(0, 10, "Current:");
-      u8g2.setFont(u8g2_font_ncenB24_tr);
-      u8g2.drawStr(0, 45, bigCurrent);
-
-      // Trennlinie in der Mitte
-      u8g2.drawLine(63, 0, 63, 64);
-
-      // --- RECHTS: Next ---
-      u8g2.setFont(u8g2_font_ncenB08_tr);
-      u8g2.drawStr(68, 10, "Next:");
-      u8g2.setFont(u8g2_font_ncenB24_tr);
-      u8g2.drawStr(68, 45, bigNext);
-
-      u8g2.sendBuffer();
-
-      // === LOGIK (unverändert) ===
-      if (settings && (c != '{') && (c != '}'))
-        wholeSetting = wholeSetting + c;
-
-      if (c == '{')
-        settings = true;
-      else if (c == '}')
-      {
-        settings = false;
-        LETTER_H = wholeSetting.toFloat();
-        LETTER_W = LETTER_H * 0.8;
-        LINE_H = LETTER_H * 1.6;
-        wholeSetting = "";
-      }else if (!settings){
-        drawLetter(c);
-      }else if(c == '\n' || c == '\r'){
-        continue;
-      }
-    }
+    }else if ((c == '\n') && !settings)
+      newLine();
+    else if (!settings)
+      drawLetter(c);
+    
 
     digitalWrite(BUILTIN_LED, LOW);
     motorsDisable();
-  }
+  }else{
+    digitalWrite(LED_BUSY, LOW);
+    digitalWrite(LED_READY, HIGH);
 
-  digitalWrite(LED_BUSY, LOW);
-  digitalWrite(LED_READY, HIGH);
+    if (MeinTaster.rose())
+    {
+      writeStatus = !writeStatus; 
+    }
+
+    // === READY SCREEN ===
+    u8g2.clearBuffer();
+    u8g2.setFont(u8g2_font_ncenB14_tr);
+    u8g2.drawStr(0, 20, "Ready to");
+    u8g2.drawStr(0, 40, "read");
+    u8g2.setFont(u8g2_font_ncenB10_tr);
+    u8g2.drawStr(0, 60, "You can send!");
+    u8g2.sendBuffer();
+  }
 }

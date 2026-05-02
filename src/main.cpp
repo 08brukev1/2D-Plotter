@@ -2,6 +2,7 @@
 #include <ESP32Servo.h>
 #include <U8g2lib.h>
 #include <Wire.h>
+#include <Bounce2.h>
 
 // Motor 1
 #define DIR1_PIN 18
@@ -36,8 +37,8 @@ long variableStepDelayUs = STEP_DELAY_US;
 // Letter settings
 float LETTER_W = 0.8;
 float LETTER_H = 1.0;
-float SPACE_W = 0.3;
-float LINE_H = 1.4;
+float SPACE_W = 0.2;
+float LINE_H = 1.6;
 float MAX_WIDTH = 14.0;
 float MAX_HEIGTH = 14.0;
 
@@ -50,10 +51,15 @@ float resetPositionY = 0.0;
 float calculatedResetX = 0.0;
 float calculatedResetY = 0.0;
 
+bool countRealWidth = false;
+float maxWidth = 0.0;
+
 bool countPosition = false;
 
 // Servo Objekt
 Servo penServo;
+
+Bounce MeinTaster;
 // Startpunkt
 U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, U8X8_PIN_NONE);
 float currentX = 0.0;
@@ -62,12 +68,14 @@ float currentY = 0.0;
 void penUp()
 {
   penServo.write(SERVO_UP);
+  countRealWidth = false;
   delay(400);
 }
 // Stift absenken
 void penDown()
 {
   penServo.write(SERVO_DOWN);
+  countRealWidth = true;
   delay(200);
 }
 // Bewegung in X und Y Richtung
@@ -83,6 +91,11 @@ void moveXY_DDA(float x_cm, float y_cm, int stepDelayUs)
   {
     resetPositionX = resetPositionX + x_cm;
     resetPositionY = resetPositionY + y_cm;
+
+    if (resetPositionX > maxWidth)
+    {
+      maxWidth = resetPositionX;
+    }
   }
 
   digitalWrite(DIR1_PIN, x_cm >= 0 ? LOW : HIGH);
@@ -512,16 +525,16 @@ void drawG()
   float r = LETTER_H / 2;
 
   penUp();
-  moveXY_DDA(r + LETTER_W / 2, r, variableStepDelayUs);
+  moveXY_DDA(LETTER_W, r, variableStepDelayUs);
 
   penDown();
-  drawArc(r, 0.3, 2 * PI - 0.3, 80, variableStepDelayUs);
+  drawArc(r, 0, 2 * PI - 0.3, 80, variableStepDelayUs);
 
   moveXY_DDA(-r / 2, 0, variableStepDelayUs);
   penUp();
-  moveXY_DDA(r / 2, 0, variableStepDelayUs);
+  moveXY_DDA(r / 3, 0, variableStepDelayUs);
   penDown();
-  moveXY_DDA(0, -LETTER_H / 4, variableStepDelayUs);
+  moveXY_DDA(0, -LETTER_H / 3, variableStepDelayUs);
 
   penUp();
 }
@@ -667,15 +680,12 @@ void drawS()
 {
   float r = LETTER_H / 4;
 
-  penUp();
-  moveXY_DDA(r + LETTER_W / 5, LETTER_H, variableStepDelayUs);
-
   penDown();
-  moveXY_DDA(-LETTER_W / 5, 0, variableStepDelayUs);
+  moveXY_DDA(LETTER_W / 5, 0, variableStepDelayUs);
   penDown();
-  drawArc(r, PI / 2, 3 * PI / 2, 30, variableStepDelayUs);
-  drawArc(r, PI / 2, -PI / 2, 30, variableStepDelayUs);
-  moveXY_DDA(-LETTER_W / 5, 0, variableStepDelayUs);
+  drawArc(r, -PI / 2, PI / 2, 20, variableStepDelayUs);
+  drawArc(r, (PI*3) / 2, PI / 2, 20, variableStepDelayUs);
+  moveXY_DDA(LETTER_W / 5, 0, variableStepDelayUs);
   penUp();
 }
 
@@ -769,17 +779,14 @@ void drawa()
 
   // Start rechts oben vom Kreis
   penUp();
-  moveXY_DDA(r * 2, LETTER_H * 0.2, variableStepDelayUs);
-
+  moveXY_DDA(LETTER_W / 2, 0, variableStepDelayUs);
   // Kreis (unterer Teil)
   penDown();
-  drawArc(r, 0, 2 * PI, 40, variableStepDelayUs);
+  moveXY_DDA(0, LETTER_H * 0.6, variableStepDelayUs);
   penUp();
   moveXY_DDA(0, -LETTER_H * 0.3, variableStepDelayUs);
   penDown();
-
-  moveXY_DDA(0, LETTER_H * 0.6, variableStepDelayUs);
-
+  drawArc(r, 0, 2 * PI, 40, variableStepDelayUs);
   penUp();
 }
 
@@ -858,7 +865,7 @@ void drawg()
   penUp();
   moveXY_DDA(0, -LETTER_H * 0.2, variableStepDelayUs);
   penDown();
-  drawArc(r, 0, 2 * PI, 15, variableStepDelayUs); // Bauch
+  drawArc(r, 0, 2 * PI, 15, variableStepDelayUs);
   penUp();
 }
 
@@ -1002,14 +1009,12 @@ void drawr()
 
 void draws()
 {
-  float r = LETTER_H / 4 / 1.5;
-  penUp();
-  moveXY_DDA((r + LETTER_W / 5) / 1.5, LETTER_H / 1.5, variableStepDelayUs);
+  float r = LETTER_H / 7;
   penDown();
-  moveXY_DDA(-LETTER_W / 5 / 1.5, 0, variableStepDelayUs);
-  drawArc(r, PI / 2, 3 * PI / 2, 30, variableStepDelayUs);
-  drawArc(r, PI / 2, -PI / 2, 30, variableStepDelayUs);
-  moveXY_DDA(-LETTER_W / 5 / 1.5, 0, variableStepDelayUs);
+  moveXY_DDA(LETTER_W / 6, 0, variableStepDelayUs);
+  drawArc(r, -PI / 2, PI / 2, 20, variableStepDelayUs);
+  drawArc(r, (PI*3) / 2, PI / 2, 20, variableStepDelayUs);
+  moveXY_DDA(LETTER_W / 6, 0, variableStepDelayUs);
   penUp();
 }
 
@@ -1129,6 +1134,8 @@ void setup()
 
   pinMode(LED_BUILTIN, OUTPUT);
 
+  pinMode(Taster, INPUT);
+
   pinMode(LED_BUSY, OUTPUT);
   pinMode(LED_READY, OUTPUT);
 
@@ -1138,6 +1145,9 @@ void setup()
   penServo.write(SERVO_UP);
   penServo.attach(SERVO_PIN, 500, 2400);
   penUp();
+
+  MeinTaster.attach(Taster);
+  MeinTaster.interval(40);
 
   u8g2.begin();
 
@@ -1227,20 +1237,26 @@ void drawLetter(char c)
       break;
     }
   }
-
   countPosition = false;
-
-  calculatedResetX = LETTER_W - resetPositionX;
+  calculatedResetX = maxWidth - resetPositionX;
 
   moveXY_DDA(calculatedResetX + SPACE_W, -resetPositionY, STEP_DELAY_US);
   resetPositionX = 0.0;
   resetPositionY = 0.0;
   calculatedResetX = 0.0;
   calculatedResetY = 0.0;
+  maxWidth = 0.0;
 }
 
 void loop()
 {
+  MeinTaster.update();
+
+  if (MeinTaster.rose())
+  {
+    
+  }
+  
   // === READY SCREEN ===
   u8g2.clearBuffer();
   u8g2.setFont(u8g2_font_ncenB14_tr);
@@ -1265,6 +1281,8 @@ void loop()
     {
       char c = Serial.read();
       char bigCurrent[2] = {(c == ' ' ? '_' : c), '\0'}; // Leerzeichen → _
+
+      Serial.println(c);
 
       digitalWrite(LED_BUSY, HIGH);
       digitalWrite(LED_READY, LOW);
@@ -1307,12 +1325,13 @@ void loop()
         settings = false;
         LETTER_H = wholeSetting.toFloat();
         LETTER_W = LETTER_H * 0.8;
+        LINE_H = LETTER_H * 1.6;
         wholeSetting = "";
-      }
-      else if ((c == '\n' || c == '\r') && !settings)
-        continue;
-      else if (!settings)
+      }else if (!settings){
         drawLetter(c);
+      }else if(c == '\n' || c == '\r'){
+        continue;
+      }
     }
 
     digitalWrite(BUILTIN_LED, LOW);

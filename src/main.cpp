@@ -4,6 +4,15 @@
 #include <Wire.h>
 #include <Bounce2.h>
 
+// States
+#define STATE_IDLE 0
+#define STATE_DRAWING 1
+#define HOMING 2
+#define NEW_LINE 3
+#define AFTER_HOMING_NEWLINE 4
+#define RESET_POSITION 5
+#define MOVEXY 6
+
 // Motor 1
 #define DIR1_PIN 18
 #define STEP1_PIN 19
@@ -45,6 +54,10 @@ float MAX_HEIGTH = 14.0;
 bool settings = false;
 String wholeSetting = "";
 
+int state = HOMING;
+int letter_state = 0;
+int draw_state = 0;
+
 float resetPositionX = 0.0;
 float resetPositionY = 0.0;
 
@@ -57,10 +70,29 @@ float maxWidth = 0.0;
 bool countPosition = false;
 bool writeStatus = true;
 bool goTrough = true;
+bool heightAlreadySet = false;
+
+long stepsY = 0;
+long stepsX = 0;
+long maxSteps = 0;
+long errorX = 0;
+long errorY = 0;
 
 unsigned long vergangeneZeit = 0;
 int debouncePenUp = 100;
 int debouncePenDown = 200;
+
+char c;
+int letterToDraw;
+
+bool S_Button = true;
+bool drawing_Done = false;
+bool actualLetterDone = true;
+
+void read();
+void transsitions();
+void actions();
+void startMOVEXY();
 
 // Servo Objekt
 Servo penServo;
@@ -70,6 +102,174 @@ Bounce MeinTaster;
 U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, U8X8_PIN_NONE);
 float currentX = 0.0;
 float currentY = 0.0;
+
+void read()
+{
+  if (MeinTaster.rose() && (state == STATE_IDLE || state == STATE_DRAWING))
+  {
+    S_Button = !S_Button;
+  }
+  if ((state == HOMING && digitalRead(Sensor1) && digitalRead(Sensor2)) || (state == NEW_LINE && digitalRead(Sensor1)))
+  {
+    state = AFTER_HOMING_NEWLINE;
+  }
+  if (Serial.available() && state == STATE_IDLE && S_Button && actualLetterDone)
+  {
+    state = STATE_DRAWING;
+    c = Serial.read();
+    actualLetterDone = false;
+  }
+  else if (state == STATE_DRAWING && !S_Button)
+  {
+    state = STATE_IDLE;
+  }
+}
+
+void transsitions()
+{
+  if (state == STATE_DRAWING)
+  {
+    if (currentX + LETTER_W > MAX_WIDTH)
+    {
+      if (currentY + LINE_H > MAX_HEIGTH)
+      {
+        state = HOMING;
+      }
+      else
+        state = NEW_LINE;
+    }
+
+    if (settings && (c != '{') && (c != '}'))
+      wholeSetting = wholeSetting + c;
+    if (c == '{')
+      settings = true;
+    else if (c == '}')
+    {
+      settings = false;
+      LETTER_H = wholeSetting.toFloat();
+      LETTER_W = LETTER_H * 0.8;
+      LINE_H = LETTER_H * 1.6;
+      wholeSetting = "";
+    }
+    else if (c == '\r')
+    {
+    }
+    else if ((c == '\n') && !settings)
+      state == NEW_LINE;
+    else if (!settings)
+      drawLetter(c);
+  }
+}
+
+void actions()
+{
+  switch (state)
+  {
+  case STATE_IDLE:
+    digitalWrite(LED_BUSY, LOW);
+    digitalWrite(LED_READY, HIGH);
+
+    // === READY SCREEN ===
+    u8g2.clearBuffer();
+    u8g2.setFont(u8g2_font_ncenB14_tr);
+    u8g2.drawStr(0, 20, "Ready to");
+    u8g2.drawStr(0, 40, "read");
+    u8g2.setFont(u8g2_font_ncenB10_tr);
+    u8g2.drawStr(0, 60, "You can send!");
+    u8g2.sendBuffer();
+    motorsDisable();
+    break;
+
+  case STATE_DRAWING:
+    digitalWrite(LED_READY, LOW);
+    digitalWrite(LED_BUSY, HIGH);
+
+    char bigCurrent[2] = {(c == ' ' ? '_' : c), '\0'}; // Leerzeichen → _
+
+    // Nächsten Buchstaben auslesen
+    char nextChar = '-';
+    if (Serial.available())
+      nextChar = Serial.peek();
+
+    char bigNext[2] = {(nextChar == ' ' ? '_' : nextChar), '\0'}; // Leerzeichen → _
+
+    // === DISPLAY AUFBAU ===
+    u8g2.clearBuffer();
+
+    // --- LINKS: Current ---
+    u8g2.setFont(u8g2_font_ncenB08_tr);
+    u8g2.drawStr(0, 10, "Current:");
+    u8g2.setFont(u8g2_font_ncenB24_tr);
+    u8g2.drawStr(0, 45, bigCurrent);
+
+    // Trennlinie in der Mitte
+    u8g2.drawLine(63, 0, 63, 64);
+
+    // --- RECHTS: Next ---
+    u8g2.setFont(u8g2_font_ncenB08_tr);
+    u8g2.drawStr(68, 10, "Next:");
+    u8g2.setFont(u8g2_font_ncenB24_tr);
+    u8g2.drawStr(68, 45, bigNext);
+
+    u8g2.sendBuffer();
+    motorsEnable();
+    startMOVEXY();
+    letters[letterToDraw - '!'].key;
+    break;
+  case NEW_LINE:
+    penUp();
+    digitalWrite(LED_READY, LOW);
+    digitalWrite(LED_BUSY, HIGH);
+    motorsEnable();
+    variableStepDelayUs = STEP_DELAY_US_FREE;
+    currentY = 0.0;
+    moveXY_DDA(-1, 0, variableStepDelayUs);
+    variableStepDelayUs = STEP_DELAY_US;
+    if (!heightAlreadySet)
+    {
+      currentY = currentY + LINE_H;
+      heightAlreadySet = true;
+    }
+    break;
+
+  case HOMING:
+    penUp();
+    digitalWrite(LED_READY, LOW);
+    digitalWrite(LED_BUSY, HIGH);
+    motorsEnable();
+    variableStepDelayUs = STEP_DELAY_US_FREE;
+    currentY = 0.0;
+    moveXY_DDA(-1, 1, variableStepDelayUs);
+    variableStepDelayUs = STEP_DELAY_US;
+    break;
+  case AFTER_HOMING_NEWLINE:
+    digitalWrite(LED_READY, LOW);
+    digitalWrite(LED_BUSY, HIGH);
+    motorsEnable();
+    variableStepDelayUs = STEP_DELAY_US_FREE;
+    moveXY_DDA(0, -LINE_H * 1.5, variableStepDelayUs);
+    variableStepDelayUs = STEP_DELAY_US;
+    state = STATE_IDLE;
+    heightAlreadySet = false;
+    break;
+
+  case RESET_POSITION:
+    penUp();
+    countPosition = false;
+    calculatedResetX = maxWidth - resetPositionX;
+
+    moveXY_DDA(calculatedResetX + SPACE_W, -resetPositionY, STEP_DELAY_US);
+    resetPositionX = 0.0;
+    resetPositionY = 0.0;
+    calculatedResetX = 0.0;
+    calculatedResetY = 0.0;
+    maxWidth = 0.0;
+    state = STATE_IDLE;
+    break;
+  default:
+    break;
+  }
+}
 // Stift anheben
 void penUp()
 {
@@ -84,8 +284,20 @@ void penDown()
 
 void moveXY_DDA(float x_cm, float y_cm, int stepDelayUs)
 {
-  long stepsX = lround(fabs(x_cm * STEPS_PER_CM));
-  long stepsY = lround(fabs(y_cm * STEPS_PER_CM));
+  switch (draw_state)
+  {
+  case 0:
+    draw_state = 1;
+    break;
+  case 1:
+    draw_
+    break;
+  
+  default:
+    break;
+  }
+  stepsX = lround(fabs(x_cm * STEPS_PER_CM));
+  stepsY = lround(fabs(y_cm * STEPS_PER_CM));
 
   currentX = currentX + x_cm;
 
@@ -101,27 +313,19 @@ void moveXY_DDA(float x_cm, float y_cm, int stepDelayUs)
   digitalWrite(DIR1_PIN, x_cm >= 0 ? LOW : HIGH);
   digitalWrite(DIR2_PIN, y_cm >= 0 ? HIGH : LOW);
 
-  long maxSteps = max(stepsX, stepsY);
+  maxSteps = max(stepsX, stepsY);
   if (maxSteps == 0)
     return;
 
-  long errorX = 0;
-  long errorY = 0;
+  errorX = 0;
+  errorY = 0;
+}
 
+void moveXY_DDA(float x_cm, float y_cm, int stepDelayUs)
+{
   for (long i = 0; i < maxSteps; i++)
   {
-    errorX += stepsX;
-    errorY += stepsY;
-
-    if (errorX >= maxSteps){
-      digitalWrite(STEP1_PIN, HIGH);
-      errorX -= maxSteps;
-    }
-
-    if (errorY >= maxSteps){
-      digitalWrite(STEP2_PIN, HIGH);
-      errorY -= maxSteps;
-    }
+    
 
     delayMicroseconds(stepDelayUs);
 
@@ -134,7 +338,7 @@ void moveXY_DDA(float x_cm, float y_cm, int stepDelayUs)
 
 void drawArc(float radius_cm, float startAngle, float endAngle, int segments, int stepDelayUs)
 {
-  stepDelayUs = stepDelayUs * 2; 
+  stepDelayUs = stepDelayUs * 2;
   float angleStep = (endAngle - startAngle) / segments;
 
   float prevX = radius_cm * cos(startAngle);
@@ -168,20 +372,6 @@ void motorsDisable()
   digitalWrite(ENABLE1_PIN, HIGH);
   digitalWrite(ENABLE2_PIN, HIGH);
 }
-// Neue Zeile
-void newLine()
-{
-  penUp();
-  variableStepDelayUs = STEP_DELAY_US_FREE;
-  while (!digitalRead(Sensor1))
-  {
-    moveXY_DDA(-1, 0, variableStepDelayUs);
-  }
-  moveXY_DDA(0, -LINE_H, variableStepDelayUs);
-  currentY = currentY + LINE_H;
-  currentX = 0.0;
-  variableStepDelayUs = STEP_DELAY_US;
-}
 
 void draw0()
 {
@@ -198,10 +388,23 @@ void draw0()
 
 void draw1()
 {
-  penDown();
-  moveXY_DDA(0, LETTER_H, variableStepDelayUs);
-  moveXY_DDA(-LETTER_W / 3, -LETTER_H / 4, variableStepDelayUs);
-  penUp();
+  switch (letter_state)
+  {
+  case 0:
+    penDown();
+    break;
+  case 1:
+    moveXY_DDA(0, LETTER_H, variableStepDelayUs);
+    break;
+  case 2:
+    moveXY_DDA(-LETTER_W / 3, -LETTER_H / 4, variableStepDelayUs);
+    break;
+  case 3:
+    penUp();
+    state = STATE_IDLE;
+    actualLetterDone = true;
+    break;
+  }
 }
 
 void draw2()
@@ -682,7 +885,7 @@ void drawS()
   moveXY_DDA(LETTER_W / 5, 0, variableStepDelayUs);
   penDown();
   drawArc(r, -PI / 2, PI / 2, 20, variableStepDelayUs);
-  drawArc(r, (PI*3) / 2, PI / 2, 20, variableStepDelayUs);
+  drawArc(r, (PI * 3) / 2, PI / 2, 20, variableStepDelayUs);
   moveXY_DDA(LETTER_W / 5, 0, variableStepDelayUs);
   penUp();
 }
@@ -1011,7 +1214,7 @@ void draws()
   penDown();
   moveXY_DDA(LETTER_W / 6, 0, variableStepDelayUs);
   drawArc(r, -PI / 2, PI / 2, 20, variableStepDelayUs);
-  drawArc(r, (PI*3) / 2, PI / 2, 20, variableStepDelayUs);
+  drawArc(r, (PI * 3) / 2, PI / 2, 20, variableStepDelayUs);
   moveXY_DDA(LETTER_W / 6, 0, variableStepDelayUs);
   penUp();
 }
@@ -1142,28 +1345,9 @@ void setup()
 
   penServo.write(SERVO_UP);
   penServo.attach(SERVO_PIN, 500, 2400);
-  penUp();
-
   MeinTaster.attach(Taster);
   MeinTaster.interval(40);
-
   u8g2.begin();
-
-  digitalWrite(LED_READY, HIGH);
-  digitalWrite(LED_BUSY, LOW);
-
-  variableStepDelayUs = STEP_DELAY_US_FREE;
-  while (!digitalRead(Sensor1))
-  {
-    moveXY_DDA(-1, 0, variableStepDelayUs);
-  }
-  while (!digitalRead(Sensor2))
-  {
-    moveXY_DDA(0, 1, variableStepDelayUs);
-  }
-  moveXY_DDA(0, -LETTER_H * 1.5, variableStepDelayUs);
-  variableStepDelayUs = STEP_DELAY_US;
-  motorsDisable();
 }
 
 struct Entry
@@ -1172,174 +1356,109 @@ struct Entry
   void (*func)();
 };
 
-Entry actions[] = {
-  {' ', drawSpace},
+Entry letters[] = {
+    {' ', drawSpace},
 
-  {'a', drawa}, {'b', drawb}, {'c', drawc}, {'d', drawd}, {'e', drawe},
-  {'f', drawf}, {'g', drawg}, {'h', drawh}, {'i', drawi}, {'j', drawj},
-  {'k', drawk}, {'l', drawl}, {'m', drawm}, {'n', drawn}, {'o', drawo},
-  {'p', drawp}, {'q', drawq}, {'r', drawr}, {'s', draws}, {'t', drawt},
-  {'u', drawu}, {'v', drawv}, {'w', draww}, {'x', drawx}, {'y', drawy},
-  {'z', drawz},
+    {'a', drawa},
+    {'b', drawb},
+    {'c', drawc},
+    {'d', drawd},
+    {'e', drawe},
+    {'f', drawf},
+    {'g', drawg},
+    {'h', drawh},
+    {'i', drawi},
+    {'j', drawj},
+    {'k', drawk},
+    {'l', drawl},
+    {'m', drawm},
+    {'n', drawn},
+    {'o', drawo},
+    {'p', drawp},
+    {'q', drawq},
+    {'r', drawr},
+    {'s', draws},
+    {'t', drawt},
+    {'u', drawu},
+    {'v', drawv},
+    {'w', draww},
+    {'x', drawx},
+    {'y', drawy},
+    {'z', drawz},
 
-  {'A', drawA}, {'B', drawB}, {'C', drawC}, {'D', drawD}, {'E', drawE},
-  {'F', drawF}, {'G', drawG}, {'H', drawH}, {'I', drawI}, {'J', drawJ},
-  {'K', drawK}, {'L', drawL}, {'M', drawM}, {'N', drawN}, {'O', drawO},
-  {'P', drawP}, {'Q', drawQ}, {'R', drawR}, {'S', drawS}, {'T', drawT},
-  {'U', drawU}, {'V', drawV}, {'W', drawW}, {'X', drawX}, {'Y', drawY},
-  {'Z', drawZ},
+    {'A', drawA},
+    {'B', drawB},
+    {'C', drawC},
+    {'D', drawD},
+    {'E', drawE},
+    {'F', drawF},
+    {'G', drawG},
+    {'H', drawH},
+    {'I', drawI},
+    {'J', drawJ},
+    {'K', drawK},
+    {'L', drawL},
+    {'M', drawM},
+    {'N', drawN},
+    {'O', drawO},
+    {'P', drawP},
+    {'Q', drawQ},
+    {'R', drawR},
+    {'S', drawS},
+    {'T', drawT},
+    {'U', drawU},
+    {'V', drawV},
+    {'W', drawW},
+    {'X', drawX},
+    {'Y', drawY},
+    {'Z', drawZ},
 
-  {'0', draw0}, {'1', draw1}, {'2', draw2}, {'3', draw3}, {'4', draw4},
-  {'5', draw5}, {'6', draw6}, {'7', draw7}, {'8', draw8}, {'9', draw9},
+    {'0', draw0},
+    {'1', draw1},
+    {'2', draw2},
+    {'3', draw3},
+    {'4', draw4},
+    {'5', draw5},
+    {'6', draw6},
+    {'7', draw7},
+    {'8', draw8},
+    {'9', draw9},
 
-  {'.', drawDot}, {',', drawComma}, {'!', drawExclamation}, {'?', drawQuestion},
-  {':', drawColon}, {'=', drawEqual}, {'+', drawPlus}, {'-', drawMinus},
-  {'%', drawPercent},
+    {'.', drawDot},
+    {',', drawComma},
+    {'!', drawExclamation},
+    {'?', drawQuestion},
+    {':', drawColon},
+    {'=', drawEqual},
+    {'+', drawPlus},
+    {'-', drawMinus},
+    {'%', drawPercent},
 
-  {'(', drawParenthesisOpen}, {')', drawParenthesisClose}, {'"', drawQuote}
-};
+    {'(', drawParenthesisOpen},
+    {')', drawParenthesisClose},
+    {'"', drawQuote}};
 
 void drawLetter(char c)
 {
-  if (currentX + LETTER_W > MAX_WIDTH)
-  {
-    if (currentY + LINE_H > MAX_HEIGTH)
-    {
-      variableStepDelayUs = STEP_DELAY_US_FREE;
-      currentY = 0.0;
-      while (!digitalRead(Sensor1))
-      {
-        moveXY_DDA(-1, 0, variableStepDelayUs);
-      }
-      while (!digitalRead(Sensor2))
-      {
-        moveXY_DDA(0, 1, variableStepDelayUs);
-      }
-      moveXY_DDA(0, -LETTER_H * 1.5, variableStepDelayUs);
-      variableStepDelayUs = STEP_DELAY_US;
-    }
-    else
-      newLine();
-  }
-
-  MeinTaster.update();
-  if (MeinTaster.rose())
-  {
-    writeStatus = true;
-  }
-
   resetPositionX = 0.0;
   resetPositionY = 0.0;
-
   countPosition = true;
 
   for (char i = '!'; i < '}'; i++)
   {
-    if (actions[i - '!'].key == c)
+    if (letters[i - '!'].key == c)
     {
-      actions[i - '!'].func();
+      letterToDraw = i;
       break;
     }
   }
-
-  countPosition = false;
-  calculatedResetX = maxWidth - resetPositionX;
-
-  moveXY_DDA(calculatedResetX + SPACE_W, -resetPositionY, STEP_DELAY_US);
-  resetPositionX = 0.0;
-  resetPositionY = 0.0;
-  calculatedResetX = 0.0;
-  calculatedResetY = 0.0;
-  maxWidth = 0.0;
 }
 
 void loop()
 {
   MeinTaster.update();
 
-  if (Serial.available() && writeStatus)
-  {
-    digitalWrite(BUILTIN_LED, HIGH);
-    motorsEnable();
-
-    // === SENDEN SCREEN ===
-    u8g2.clearBuffer();
-    u8g2.setFont(u8g2_font_ncenB14_tr);
-    u8g2.drawStr(0, 20, "Senden...");
-    u8g2.sendBuffer();
-
-    char c = Serial.read();
-    char bigCurrent[2] = {(c == ' ' ? '_' : c), '\0'}; // Leerzeichen → _
-
-    Serial.println(c);
-
-    digitalWrite(LED_BUSY, HIGH);
-    digitalWrite(LED_READY, LOW);
-
-    // Nächsten Buchstaben auslesen
-    char nextChar = '-';
-    if (Serial.available())
-      nextChar = Serial.peek();
-
-    char bigNext[2] = {(nextChar == ' ' ? '_' : nextChar), '\0'}; // Leerzeichen → _
-
-    // === DISPLAY AUFBAU ===
-    u8g2.clearBuffer();
-
-    // --- LINKS: Current ---
-    u8g2.setFont(u8g2_font_ncenB08_tr);
-    u8g2.drawStr(0, 10, "Current:");
-    u8g2.setFont(u8g2_font_ncenB24_tr);
-    u8g2.drawStr(0, 45, bigCurrent);
-
-    // Trennlinie in der Mitte
-    u8g2.drawLine(63, 0, 63, 64);
-
-    // --- RECHTS: Next ---
-    u8g2.setFont(u8g2_font_ncenB08_tr);
-    u8g2.drawStr(68, 10, "Next:");
-    u8g2.setFont(u8g2_font_ncenB24_tr);
-    u8g2.drawStr(68, 45, bigNext);
-
-    u8g2.sendBuffer();
-
-    // === LOGIK (unverändert) ===
-    if (settings && (c != '{') && (c != '}'))
-      wholeSetting = wholeSetting + c;
-
-    if (c == '{')
-      settings = true;
-    else if (c == '}')
-    {
-      settings = false;
-      LETTER_H = wholeSetting.toFloat();
-      LETTER_W = LETTER_H * 0.8;
-      LINE_H = LETTER_H * 1.6;
-      wholeSetting = "";
-    }else if (c == '\r'){
-
-    }else if ((c == '\n') && !settings)
-      newLine();
-    else if (!settings)
-      drawLetter(c);
-    digitalWrite(BUILTIN_LED, LOW);
-    motorsDisable();
-  }else{
-    digitalWrite(LED_BUSY, LOW);
-    digitalWrite(LED_READY, HIGH);
-
-    if (MeinTaster.rose())
-    {
-      writeStatus = true;
-    }
-
-    // === READY SCREEN ===
-    u8g2.clearBuffer();
-    u8g2.setFont(u8g2_font_ncenB14_tr);
-    u8g2.drawStr(0, 20, "Ready to");
-    u8g2.drawStr(0, 40, "read");
-    u8g2.setFont(u8g2_font_ncenB10_tr);
-    u8g2.drawStr(0, 60, "You can send!");
-    u8g2.sendBuffer();
-  }
+  read();
+  transsitions();
+  actions();
 }

@@ -56,6 +56,11 @@ float maxWidth = 0.0;
 
 bool countPosition = false;
 bool writeStatus = true;
+bool goTrough = true;
+
+unsigned long vergangeneZeit = 0;
+int debouncePenUp = 100;
+int debouncePenDown = 200;
 
 // Servo Objekt
 Servo penServo;
@@ -69,25 +74,16 @@ float currentY = 0.0;
 void penUp()
 {
   penServo.write(SERVO_UP);
-  countRealWidth = false;
-  delay(400);
 }
 // Stift absenken
 void penDown()
 {
   penServo.write(SERVO_DOWN);
-  countRealWidth = true;
-  delay(200);
 }
 // Bewegung in X und Y Richtung
 
 void moveXY_DDA(float x_cm, float y_cm, int stepDelayUs)
 {
-  MeinTaster.update();
-  if (MeinTaster.rose())
-  {
-    writeStatus = !writeStatus; 
-  }
   long stepsX = lround(fabs(x_cm * STEPS_PER_CM));
   long stepsY = lround(fabs(y_cm * STEPS_PER_CM));
 
@@ -99,9 +95,7 @@ void moveXY_DDA(float x_cm, float y_cm, int stepDelayUs)
     resetPositionY = resetPositionY + y_cm;
 
     if (resetPositionX > maxWidth)
-    {
       maxWidth = resetPositionX;
-    }
   }
 
   digitalWrite(DIR1_PIN, x_cm >= 0 ? LOW : HIGH);
@@ -119,14 +113,12 @@ void moveXY_DDA(float x_cm, float y_cm, int stepDelayUs)
     errorX += stepsX;
     errorY += stepsY;
 
-    if (errorX >= maxSteps)
-    {
+    if (errorX >= maxSteps){
       digitalWrite(STEP1_PIN, HIGH);
       errorX -= maxSteps;
     }
 
-    if (errorY >= maxSteps)
-    {
+    if (errorY >= maxSteps){
       digitalWrite(STEP2_PIN, HIGH);
       errorY -= maxSteps;
     }
@@ -1230,6 +1222,12 @@ void drawLetter(char c)
       newLine();
   }
 
+  MeinTaster.update();
+  if (MeinTaster.rose())
+  {
+    writeStatus = true;
+  }
+
   resetPositionX = 0.0;
   resetPositionY = 0.0;
 
@@ -1324,8 +1322,6 @@ void loop()
       newLine();
     else if (!settings)
       drawLetter(c);
-    
-
     digitalWrite(BUILTIN_LED, LOW);
     motorsDisable();
   }else{
@@ -1334,7 +1330,7 @@ void loop()
 
     if (MeinTaster.rose())
     {
-      writeStatus = !writeStatus; 
+      writeStatus = true;
     }
 
     // === READY SCREEN ===

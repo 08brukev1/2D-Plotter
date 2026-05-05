@@ -8,10 +8,11 @@
 #define STATE_IDLE 0
 #define STATE_DRAWING 1
 #define STATE_HOMING 2
-#define NEW_LINE 3
+#define STATE_NEW_LINE 3
 #define AFTER_HOMING_NEWLINE 4
 #define RESET_POSITION 5
 #define MOVEXY 6
+#define STATE_READING 7
 
 // Motor 1
 #define DIR1_PIN 18
@@ -38,7 +39,7 @@
 #define STEPS_PER_MM 4.76
 #define STEPS_PER_CM (STEPS_PER_MM * 10.0)
 #define STEP_DELAY_US 1200
-#define STEP_DELAY_US_FREE 1200
+#define STEP_DELAY_US_FREE 1000
 long variableStepDelayUs = STEP_DELAY_US;
 // Servo settings
 #define SERVO_UP 30
@@ -56,13 +57,26 @@ String wholeSetting = "";
 
 int state = STATE_HOMING;
 int letter_state = 0;
+int remember_letter_state = 0;
 int draw_state = 0;
+int arc_state = 0;
+int drawArc_state = 0;
 
 float resetPositionX = 0.0;
 float resetPositionY = 0.0;
 
 float calculatedResetX = 0.0;
 float calculatedResetY = 0.0;
+
+float prevX = 0.0;
+float prevY = 0.0;
+float angleStep = 0.0;
+
+float theta = 0.0;
+float x = 0.0;
+float y = 0.0;
+float dx = 0.0;
+float dy = 0.0;
 
 bool countRealWidth = false;
 float maxWidth = 0.0;
@@ -81,6 +95,8 @@ long stepCounter = 0;
 
 long long XYTime = micros();
 long long servoTime = 0;
+long arcCounter = 0;
+int savedSegments = 0;
 
 unsigned long vergangeneZeit = 0;
 int debouncePenUp = 100;
@@ -95,6 +111,9 @@ int letterToDraw;
 bool S_Button = true;
 bool drawing_Done = false;
 bool actualLetterDone = true;
+bool displayUpdate = false;
+bool sensor1Triggered = false;
+bool sensor2Triggered = false;
 
 void read();
 void transsitions();
@@ -289,28 +308,39 @@ void read()
   {
     S_Button = !S_Button;
   }
+
+  if (digitalRead(Sensor1))
+    sensor1Triggered = true;
+  else
+    sensor1Triggered = false;
+
+  if (digitalRead(Sensor2))
+    sensor2Triggered = true;
+  else
+    sensor2Triggered = false;
+
   if ((state == STATE_HOMING && digitalRead(Sensor1) && digitalRead(Sensor2)) ||
-      (state == NEW_LINE && digitalRead(Sensor1)))
+      (state == STATE_NEW_LINE && digitalRead(Sensor1)))
   {
     state = AFTER_HOMING_NEWLINE;
     letter_state = 0;
     draw_state = 0;
   }
-  if (Serial.available() && state == STATE_IDLE && S_Button && actualLetterDone)
+  if (Serial.available() && state == STATE_IDLE && S_Button &&
+      actualLetterDone)
   {
-    state = STATE_DRAWING;
+    state = STATE_READING;
     c = Serial.read();
     actualLetterDone = false;
+    displayUpdate = true;
   }
   else if (state == STATE_DRAWING && !S_Button)
-  {
     state = STATE_IDLE;
-  }
 }
 
 void transsitions()
 {
-  if (state == STATE_DRAWING)
+  if (state == STATE_READING)
   {
     if (currentX + LETTER_W > MAX_WIDTH)
     {
@@ -319,7 +349,7 @@ void transsitions()
         state = STATE_HOMING;
       }
       else
-        state = NEW_LINE;
+        state = STATE_NEW_LINE;
     }
 
     if (settings && (c != '{') && (c != '}'))
@@ -333,12 +363,13 @@ void transsitions()
       LETTER_W = LETTER_H * 0.8;
       LINE_H = LETTER_H * 1.6;
       wholeSetting = "";
+      state = STATE_IDLE;
     }
     else if (c == '\r')
     {
     }
     else if ((c == '\n') && !settings)
-      state = NEW_LINE; // was == -> BUG
+      state = STATE_NEW_LINE;
     else if (!settings)
       drawLetter(c);
   }
@@ -368,40 +399,48 @@ void actions()
     digitalWrite(LED_READY, LOW);
     digitalWrite(LED_BUSY, HIGH);
 
-    char bigCurrent[2] = {(c == ' ' ? '_' : c), '\0'}; // Leerzeichen → _
+    if (displayUpdate)
+    {
+      char bigCurrent[2] = {(c == ' ' ? '_' : c), '\0'}; // Leerzeichen → _
 
-    // Nächsten Buchstaben auslesen
-    char nextChar = '-';
-    if (Serial.available())
-      nextChar = Serial.peek();
+      // Nächsten Buchstaben auslesen
+      char nextChar = '-';
+      if (Serial.available())
+        nextChar = Serial.peek();
 
-    char bigNext[2] = {(nextChar == ' ' ? '_' : nextChar), '\0'}; // Leerzeichen → _
+      char bigNext[2] = {(nextChar == ' ' ? '_' : nextChar),
+                         '\0'}; // Leerzeichen → _
 
-    // === DISPLAY AUFBAU ===
-    u8g2.clearBuffer();
+      // === DISPLAY AUFBAU ===
+      u8g2.clearBuffer();
 
-    // --- LINKS: Current ---
-    u8g2.setFont(u8g2_font_ncenB08_tr);
-    u8g2.drawStr(0, 10, "Current:");
-    u8g2.setFont(u8g2_font_ncenB24_tr);
-    u8g2.drawStr(0, 45, bigCurrent);
+      // --- LINKS: Current ---
+      u8g2.setFont(u8g2_font_ncenB08_tr);
+      u8g2.drawStr(0, 10, "Current:");
+      u8g2.setFont(u8g2_font_ncenB24_tr);
+      u8g2.drawStr(0, 45, bigCurrent);
 
-    // Trennlinie in der Mitte
-    u8g2.drawLine(63, 0, 63, 64);
+      // Trennlinie in der Mitte
+      u8g2.drawLine(63, 0, 63, 64);
 
-    // --- RECHTS: Next ---
-    u8g2.setFont(u8g2_font_ncenB08_tr);
-    u8g2.drawStr(68, 10, "Next:");
-    u8g2.setFont(u8g2_font_ncenB24_tr);
-    u8g2.drawStr(68, 45, bigNext);
+      // --- RECHTS: Next ---
+      u8g2.setFont(u8g2_font_ncenB08_tr);
+      u8g2.drawStr(68, 10, "Next:");
+      u8g2.setFont(u8g2_font_ncenB24_tr);
+      u8g2.drawStr(68, 45, bigNext);
 
-    u8g2.sendBuffer();
+      u8g2.sendBuffer();
+      displayUpdate = false;
+    }
+
     motorsEnable();
-    letters[letterToDraw - '!'].key;
+    letters[letterToDraw - '!'].func();
     break;
   }
 
-  case NEW_LINE:
+  case STATE_NEW_LINE: // Not done
+                       // _______________________________________________________
+                       // !!!!
     digitalWrite(LED_READY, LOW);
     digitalWrite(LED_BUSY, HIGH);
     motorsEnable();
@@ -438,10 +477,23 @@ void actions()
       break;
 
     case 1:
-      moveXY_DDA(-1, 1, variableStepDelayUs);
+      if (!sensor1Triggered)
+      {
+        moveXY_DDA(-1, 0, variableStepDelayUs);
+      }
+      if (!sensor2Triggered)
+      {
+        moveXY_DDA(0, 1, variableStepDelayUs);
+      }
+      if (sensor1Triggered && sensor2Triggered)
+      {
+        letter_state++;
+      }
+      else
+        letter_state = 1;
       break;
     case 2:
-      letter_state = 1;
+      letter_state = 0;
       break;
     }
     digitalWrite(LED_READY, LOW);
@@ -472,17 +524,32 @@ void actions()
     break;
 
   case RESET_POSITION:
-    penUp();
-    countPosition = false;
-    calculatedResetX = maxWidth - resetPositionX;
+    switch (letter_state)
+    {
+    case 0:
+      penUp();
+      motorsEnable();
 
-    moveXY_DDA(calculatedResetX + SPACE_W, -resetPositionY, STEP_DELAY_US);
-    resetPositionX = 0.0;
-    resetPositionY = 0.0;
-    calculatedResetX = 0.0;
-    calculatedResetY = 0.0;
-    maxWidth = 0.0;
-    state = STATE_IDLE;
+      break;
+    case 1:
+      countPosition = false;
+      calculatedResetX = maxWidth - resetPositionX;
+      letter_state++;
+      break;
+    case 2:
+      moveXY_DDA(calculatedResetX + SPACE_W, -resetPositionY, STEP_DELAY_US);
+      break;
+    case 3:
+      resetPositionX = 0.0;
+      resetPositionY = 0.0;
+      calculatedResetX = 0.0;
+      calculatedResetY = 0.0;
+      maxWidth = 0.0;
+      letter_state = 0;
+      ServoState = 0;
+      state = STATE_IDLE;
+      break;
+    }
     break;
   }
 }
@@ -494,7 +561,7 @@ void penUp()
   case 0:
     servoTime = millis();
     penServo.write(SERVO_UP);
-    ServoState++;
+    ServoState = 1;
     break;
   case 1:
     if (millis() - servoTime > debouncePenUp)
@@ -513,7 +580,7 @@ void penDown()
   case 0:
     servoTime = millis();
     penServo.write(SERVO_DOWN);
-    ServoState++;
+    ServoState = 1;
     break;
   case 1:
     if (millis() - servoTime > debouncePenDown)
@@ -524,7 +591,6 @@ void penDown()
     break;
   }
 }
-// Bewegung in X und Y Richtung
 
 void moveXY_DDA(float x_cm, float y_cm, int stepDelayUs)
 {
@@ -532,8 +598,8 @@ void moveXY_DDA(float x_cm, float y_cm, int stepDelayUs)
   {
   case 0:
     draw_state = 1;
-    stepsX = lround(fabs(x_cm * STEPS_PER_CM));
-    stepsY = lround(fabs(y_cm * STEPS_PER_CM));
+    stepsX = fabs(x_cm * STEPS_PER_CM);
+    stepsY = fabs(y_cm * STEPS_PER_CM);
 
     currentX = currentX + x_cm;
 
@@ -550,8 +616,10 @@ void moveXY_DDA(float x_cm, float y_cm, int stepDelayUs)
     digitalWrite(DIR2_PIN, y_cm >= 0 ? HIGH : LOW);
 
     maxSteps = max(stepsX, stepsY);
-    if (maxSteps == 0)
+    if (maxSteps == 0.0)
+    {
       return;
+    }
 
     errorX = 0;
     errorY = 0;
@@ -590,6 +658,7 @@ void moveXY_DDA(float x_cm, float y_cm, int stepDelayUs)
           // skipped - Still the GOAT
           draw_state = 0;
           letter_state++;
+          ServoState = 0;
         }
         else
           stepCounter++;
@@ -604,28 +673,63 @@ void moveXY_DDA(float x_cm, float y_cm, int stepDelayUs)
   }
 }
 
-void drawArc(float radius_cm, float startAngle, float endAngle, int segments, int stepDelayUs)
+void drawArc(float radius_cm, float startAngle, float endAngle, int segments,
+             int stepDelayUs)
 {
-  stepDelayUs = stepDelayUs * 2;
-  float angleStep = (endAngle - startAngle) / segments;
-
-  float prevX = radius_cm * cos(startAngle);
-  float prevY = radius_cm * sin(startAngle);
-
-  for (int i = 1; i <= segments; i++)
+  switch (arc_state)
   {
-    float theta = startAngle + i * angleStep;
+  case 0:
+    arc_state = 1;
+    arcCounter = 0;
+    drawArc_state = 0;
+    savedSegments = segments;
 
-    float x = radius_cm * cos(theta);
-    float y = radius_cm * sin(theta);
+    angleStep = (endAngle - startAngle) / segments;
 
-    float dx = x - prevX;
-    float dy = y - prevY;
+    prevX = radius_cm * cos(startAngle);
+    prevY = radius_cm * sin(startAngle);
+    remember_letter_state = letter_state;
+    break;
 
-    moveXY_DDA(dx, dy, stepDelayUs);
+  case 1:
+    switch (drawArc_state)
+    {
+    case 0:
+      arcCounter++;
 
-    prevX = x;
-    prevY = y;
+      theta = startAngle + arcCounter * angleStep;
+      x = radius_cm * cos(theta);
+      y = radius_cm * sin(theta);
+      dx = x - prevX;
+      dy = y - prevY;
+      drawArc_state = 1;
+      break;
+
+    case 1:
+      moveXY_DDA(dx, dy, variableStepDelayUs);
+      letter_state = remember_letter_state;
+      if (draw_state == 0) // arc-Segment gerade fertig
+        drawArc_state = 2;
+      break;
+
+    case 2: // kommt von moveXY_DDA via drawArc_state++
+      prevX = x;
+      prevY = y;
+
+      if (arcCounter >= savedSegments)
+      {
+        arc_state = 0;
+        drawArc_state = 0;
+        letter_state++; // erst JETZT letter_state weiterzählen
+      }
+      else
+      {
+        drawArc_state = 0;
+        arc_state = 1;
+      }
+      break;
+    }
+    break;
   }
 }
 
@@ -644,14 +748,39 @@ void motorsDisable()
 void draw0()
 {
   float r = LETTER_H / 3;
-  penUp();
-  moveXY_DDA(0, r, variableStepDelayUs);
-  penDown();
-  drawArc(r, PI, 2 * PI, 20, variableStepDelayUs);
-  moveXY_DDA(0, LETTER_H / 3, variableStepDelayUs);
-  drawArc(r, 0, PI, 20, variableStepDelayUs);
-  moveXY_DDA(0, -LETTER_H / 3, variableStepDelayUs);
-  penUp();
+  switch (letter_state)
+  {
+  case 0:
+    penUp();
+    break;
+  case 1:
+    moveXY_DDA(0, r, variableStepDelayUs);
+    break;
+  case 2:
+    penDown();
+    break;
+  case 3:
+    drawArc(r, PI, 2 * PI, 5, variableStepDelayUs);
+    break;
+  case 4:
+    moveXY_DDA(0, LETTER_H / 3, variableStepDelayUs);
+    break;
+  case 5:
+    drawArc(r, 0, PI, 5, variableStepDelayUs);
+    break;
+  case 6:
+    moveXY_DDA(0, -LETTER_H / 3, variableStepDelayUs);
+    break;
+  case 7:
+    penUp();
+    break;
+  case 8:
+    state = RESET_POSITION;
+    actualLetterDone = true;
+    letter_state = 0;
+    ServoState = 0;
+    break;
+  }
 }
 
 void draw1()
@@ -659,6 +788,7 @@ void draw1()
   switch (letter_state)
   {
   case 0:
+    actualLetterDone = false;
     penDown();
     break;
   case 1:
@@ -669,9 +799,11 @@ void draw1()
     break;
   case 3:
     penUp();
-    state = STATE_IDLE;
+  case 4:
+    state = RESET_POSITION;
     actualLetterDone = true;
     letter_state = 0;
+    ServoState = 0;
     break;
   }
 }
@@ -911,14 +1043,41 @@ void drawQuote()
 
 void drawA()
 {
-  penDown();
-  moveXY_DDA(LETTER_W / 4, LETTER_H, variableStepDelayUs);
-  moveXY_DDA(LETTER_W / 4, -LETTER_H, variableStepDelayUs);
-  penUp();
-  moveXY_DDA(-LETTER_W / 2.5, LETTER_H / 2, variableStepDelayUs);
-  penDown();
-  moveXY_DDA(LETTER_W / 4, 0, variableStepDelayUs);
-  penUp();
+  
+  switch (letter_state)
+  {
+  case 0:
+    penDown();
+    break;
+
+  case 1:
+    moveXY_DDA(LETTER_W / 4, LETTER_H, variableStepDelayUs);
+    break;
+  case 2:
+    moveXY_DDA(LETTER_W / 4, -LETTER_H, variableStepDelayUs);
+    break;
+  case 3:
+    penUp();
+    break;
+  case 4:
+    moveXY_DDA(-LETTER_W / 2.5, LETTER_H / 2, variableStepDelayUs);
+    break;
+  case 5:
+    penDown();
+    break;
+  case 6:
+    moveXY_DDA(LETTER_W / 4, 0, variableStepDelayUs);
+    break;
+  case 7:
+    penUp();
+    break;
+  case 8:
+    state = RESET_POSITION;
+    actualLetterDone = true;
+    letter_state = 0;
+    ServoState = 0;
+    break;
+  }
 }
 
 void drawB()
@@ -1090,14 +1249,32 @@ void drawN()
 void drawO()
 {
   float r = LETTER_H / 2;
+  switch (letter_state)
+  {
+  case 0:
+    
+    penUp();
+    break;
 
-  penUp();
-  moveXY_DDA(LETTER_W, r, variableStepDelayUs);
-
-  penDown();
-  drawArc(r, 0, 2 * PI, 20, variableStepDelayUs);
-
-  penUp();
+  case 1:
+    moveXY_DDA(LETTER_W, r, variableStepDelayUs);
+    break;
+  case 2:
+    penDown();
+    break;
+  case 3:
+    drawArc(r, 0, 2 * PI, 20, variableStepDelayUs);
+    break;
+  case 4:
+    penUp();
+    break;
+  case 5:
+    state = RESET_POSITION;
+    actualLetterDone = true;
+    letter_state = 0;
+    ServoState = 0;
+    break;
+  }
 }
 
 void drawP()
@@ -1633,6 +1810,8 @@ void drawLetter(char c)
       break;
     }
   }
+
+  state = STATE_DRAWING;
 }
 
 void loop()

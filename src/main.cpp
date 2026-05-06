@@ -38,8 +38,8 @@
 // Step settings
 #define STEPS_PER_MM 4.76
 #define STEPS_PER_CM (STEPS_PER_MM * 10.0)
-#define STEP_DELAY_US 1200
-#define STEP_DELAY_US_FREE 1000
+#define STEP_DELAY_US 1000
+#define STEP_DELAY_US_FREE 600
 long variableStepDelayUs = STEP_DELAY_US;
 // Servo settings
 #define SERVO_UP 30
@@ -67,6 +67,11 @@ float resetPositionY = 0.0;
 
 float calculatedResetX = 0.0;
 float calculatedResetY = 0.0;
+
+float stepErrorX = 0;
+float stepErrorY = 0;
+
+float arcRadius = 0.0;
 
 float prevX = 0.0;
 float prevY = 0.0;
@@ -114,6 +119,7 @@ bool actualLetterDone = true;
 bool displayUpdate = false;
 bool sensor1Triggered = false;
 bool sensor2Triggered = false;
+bool arcReset = false;
 
 void read();
 void transsitions();
@@ -326,16 +332,6 @@ void read()
     letter_state = 0;
     draw_state = 0;
   }
-  if (Serial.available() && state == STATE_IDLE && S_Button &&
-      actualLetterDone)
-  {
-    state = STATE_READING;
-    c = Serial.read();
-    actualLetterDone = false;
-    displayUpdate = true;
-  }
-  else if (state == STATE_DRAWING && !S_Button)
-    state = STATE_IDLE;
 }
 
 void transsitions()
@@ -373,6 +369,15 @@ void transsitions()
     else if (!settings)
       drawLetter(c);
   }
+  if (Serial.available() && state == STATE_IDLE && S_Button && actualLetterDone)
+  {
+    state = STATE_READING;
+    c = Serial.read();
+    actualLetterDone = false;
+    displayUpdate = true;
+  }
+  else if (state == STATE_DRAWING && !S_Button)
+    state = STATE_IDLE;
 }
 
 void actions()
@@ -408,8 +413,7 @@ void actions()
       if (Serial.available())
         nextChar = Serial.peek();
 
-      char bigNext[2] = {(nextChar == ' ' ? '_' : nextChar),
-                         '\0'}; // Leerzeichen → _
+      char bigNext[2] = {(nextChar == ' ' ? '_' : nextChar), '\0'}; // Leerzeichen → _
 
       // === DISPLAY AUFBAU ===
       u8g2.clearBuffer();
@@ -438,9 +442,7 @@ void actions()
     break;
   }
 
-  case STATE_NEW_LINE: // Not done
-                       // _______________________________________________________
-                       // !!!!
+  case STATE_NEW_LINE: 
     digitalWrite(LED_READY, LOW);
     digitalWrite(LED_BUSY, HIGH);
     motorsEnable();
@@ -454,13 +456,13 @@ void actions()
       break;
     case 1:
       moveXY_DDA(-1, 0, variableStepDelayUs);
+      if (!sensor1Triggered)
+      {
+        letter_state = 1;
+      }
       break;
     case 2:
-      if (!heightAlreadySet)
-      {
-        currentY = currentY + LINE_H;
-        heightAlreadySet = true;
-      }
+      currentY = currentY + LINE_H;
       variableStepDelayUs = STEP_DELAY_US;
       state = STATE_IDLE;
       letter_state = 0;
@@ -597,9 +599,16 @@ void moveXY_DDA(float x_cm, float y_cm, int stepDelayUs)
   switch (draw_state)
   {
   case 0:
+  {
     draw_state = 1;
-    stepsX = fabs(x_cm * STEPS_PER_CM);
-    stepsY = fabs(y_cm * STEPS_PER_CM);
+    float stepsX_f = fabs(x_cm * STEPS_PER_CM) + stepErrorX;
+    float stepsY_f = fabs(y_cm * STEPS_PER_CM) + stepErrorY;
+
+    stepsX = lround(stepsX_f);
+    stepsY = lround(stepsY_f);
+
+    stepErrorX = stepsX_f - stepsX;
+    stepErrorY = stepsY_f - stepsY;
 
     currentX = currentX + x_cm;
 
@@ -621,60 +630,67 @@ void moveXY_DDA(float x_cm, float y_cm, int stepDelayUs)
       return;
     }
 
-    errorX = 0;
-    errorY = 0;
+    if (arcReset)
+    {
+      errorX = 0;
+      errorY = 0;
+      stepErrorX = 0;
+      stepErrorY = 0;
+      arcReset = false;
+    }
     XYState = 0;
     stepCounter = 0;
 
     XYTime = micros();
     break;
+  }
   case 1:
-    errorX += stepsX;
-    errorY += stepsY;
-
-    if (errorX >= maxSteps)
-    {
-      digitalWrite(STEP1_PIN, HIGH);
-      errorX -= maxSteps;
-    }
-
-    if (errorY >= maxSteps)
-    {
-      digitalWrite(STEP2_PIN, HIGH);
-      errorY -= maxSteps;
-    }
-
     if ((micros() - XYTime > stepDelayUs))
     {
-      XYState++;
-      XYTime = micros();
+      if (XYState == 0)
+      {
+        errorX += stepsX;
+        errorY += stepsY;
+        if (errorX >= maxSteps)
+        {
+          digitalWrite(STEP1_PIN, HIGH);
+          errorX -= maxSteps;
+        }
+
+        if (errorY >= maxSteps)
+        {
+          digitalWrite(STEP2_PIN, HIGH);
+          errorY -= maxSteps;
+        }
+      }
+
       if (XYState == 2)
       {
-        // reset the State so it doesn't loop forever - Antonio the GOAT
-        XYState = 0;
         if (maxSteps <= stepCounter)
         {
-          // so that next time the function is called, state0 ain't getting
-          // skipped - Still the GOAT
           draw_state = 0;
           letter_state++;
           ServoState = 0;
+          drawArc_state = 2;
         }
         else
           stepCounter++;
+        XYState = -1;
       }
-      else
+
+      if (XYState == 1)
       {
         digitalWrite(STEP1_PIN, LOW);
         digitalWrite(STEP2_PIN, LOW);
       }
+      XYState++;
+      XYTime = micros();
     }
     break;
   }
 }
 
-void drawArc(float radius_cm, float startAngle, float endAngle, int segments,
-             int stepDelayUs)
+void drawArc(float radius_cm, float startAngle, float endAngle, int segments, int stepDelayUs)
 {
   switch (arc_state)
   {
@@ -689,6 +705,7 @@ void drawArc(float radius_cm, float startAngle, float endAngle, int segments,
     prevX = radius_cm * cos(startAngle);
     prevY = radius_cm * sin(startAngle);
     remember_letter_state = letter_state;
+    arcReset = true;
     break;
 
   case 1:
@@ -708,8 +725,6 @@ void drawArc(float radius_cm, float startAngle, float endAngle, int segments,
     case 1:
       moveXY_DDA(dx, dy, variableStepDelayUs);
       letter_state = remember_letter_state;
-      if (draw_state == 0) // arc-Segment gerade fertig
-        drawArc_state = 2;
       break;
 
     case 2: // kommt von moveXY_DDA via drawArc_state++
@@ -721,6 +736,7 @@ void drawArc(float radius_cm, float startAngle, float endAngle, int segments,
         arc_state = 0;
         drawArc_state = 0;
         letter_state++; // erst JETZT letter_state weiterzählen
+        arcReset = true;
       }
       else
       {
@@ -760,13 +776,13 @@ void draw0()
     penDown();
     break;
   case 3:
-    drawArc(r, PI, 2 * PI, 5, variableStepDelayUs);
+    drawArc(r, PI, 2 * PI, 30, variableStepDelayUs);
     break;
   case 4:
     moveXY_DDA(0, LETTER_H / 3, variableStepDelayUs);
     break;
   case 5:
-    drawArc(r, 0, PI, 5, variableStepDelayUs);
+    drawArc(r, 0, PI, 30, variableStepDelayUs);
     break;
   case 6:
     moveXY_DDA(0, -LETTER_H / 3, variableStepDelayUs);
@@ -1043,7 +1059,7 @@ void drawQuote()
 
 void drawA()
 {
-  
+
   switch (letter_state)
   {
   case 0:
@@ -1252,7 +1268,7 @@ void drawO()
   switch (letter_state)
   {
   case 0:
-    
+
     penUp();
     break;
 
@@ -1263,7 +1279,7 @@ void drawO()
     penDown();
     break;
   case 3:
-    drawArc(r, 0, 2 * PI, 20, variableStepDelayUs);
+    drawArc(r, 0, 2 * PI, 10, variableStepDelayUs);
     break;
   case 4:
     penUp();
@@ -1330,8 +1346,8 @@ void drawS()
   penDown();
   moveXY_DDA(LETTER_W / 5, 0, variableStepDelayUs);
   penDown();
-  drawArc(r, -PI / 2, PI / 2, 20, variableStepDelayUs);
-  drawArc(r, (PI * 3) / 2, PI / 2, 20, variableStepDelayUs);
+  drawArc(r, -PI / 2, PI / 2, 30, variableStepDelayUs);
+  drawArc(r, (PI * 3) / 2, PI / 2, 30, variableStepDelayUs);
   moveXY_DDA(LETTER_W / 5, 0, variableStepDelayUs);
   penUp();
 }
@@ -1433,7 +1449,7 @@ void drawa()
   penUp();
   moveXY_DDA(0, -LETTER_H * 0.3, variableStepDelayUs);
   penDown();
-  drawArc(r, 0, 2 * PI, 40, variableStepDelayUs);
+  drawArc(r, 0, 2 * PI, 30, variableStepDelayUs);
   penUp();
 }
 

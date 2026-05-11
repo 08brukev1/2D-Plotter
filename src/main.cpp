@@ -836,33 +836,6 @@ void drawArc(float radius_cm, float startAngle, float endAngle, int segments, in
   }
 }
 
-/*
-void drawArc(float radius_cm, float startAngle, float endAngle, int segments, int stepDelayUs)
-{
-  stepDelayUs = stepDelayUs * 2;
-  float angleStep = (endAngle - startAngle) / segments;
-
-  float prevX = radius_cm * cos(startAngle);
-  float prevY = radius_cm * sin(startAngle);
-
-  for (int i = 1; i <= segments; i++)
-  {
-    float theta = startAngle + i * angleStep;
-
-    float x = radius_cm * cos(theta);
-    float y = radius_cm * sin(theta);
-
-    float dx = x - prevX;
-    float dy = y - prevY;
-
-    moveXY_DDA(dx, dy, stepDelayUs);
-
-    prevX = x;
-    prevY = y;
-  }
-}
-*/
-
 void motorsEnable()
 {
   digitalWrite(ENABLE1_PIN, LOW);

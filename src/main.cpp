@@ -39,7 +39,7 @@
 // Step settings
 #define STEPS_PER_MM 4.76
 #define STEPS_PER_CM (STEPS_PER_MM * 10.0)
-#define STEP_DELAY_US 1200
+#define STEP_DELAY_US 600
 #define STEP_DELAY_US_FREE 400
 long variableStepDelayUs = STEP_DELAY_US;
 // Servo settings
@@ -56,7 +56,7 @@ float MAX_HEIGTH = 14.0;
 bool settings = false;
 String wholeSetting = "";
 
-int state = STATE_HOMING;
+int  state = STATE_IDLE; // changed from homing
 int letter_state = 0;
 int remember_letter_state = 0;
 int draw_state = 0;
@@ -126,6 +126,7 @@ bool sensor1Triggered = false;
 bool sensor2Triggered = false;
 bool arcReset = false;
 bool clearBuffer = true;
+bool penCal = false;
 
 void read();
 void transsitions();
@@ -355,9 +356,10 @@ void read()
 }
 
 void transsitions()
-{
+{ 
   if (state == STATE_READING)
   {
+    Serial.println(currentX);
     if (settings && (c != '{') && (c != '}'))
       wholeSetting = wholeSetting + c;
     if (c == '{')
@@ -373,6 +375,7 @@ void transsitions()
     }
     else if (c == '\r')
     {
+      state = STATE_NEW_LINE;
     }
     else if ((c == '\n') && !settings)
       state = STATE_NEW_LINE;
@@ -383,7 +386,7 @@ void transsitions()
       state = STATE_IDLE;
       actualLetterDone = true;
     }
-    if (currentX + (LETTER_W * 1.5) > MAX_WIDTH)
+    if (currentX + LETTER_W > MAX_WIDTH)
     {
       if (currentY + LINE_H > MAX_HEIGTH)
       {
@@ -393,7 +396,7 @@ void transsitions()
         state = STATE_NEW_LINE;
     }
   }
-  if ((state == STATE_IDLE || state == STATE_DRAWING || state == STATE_READING) && S_Button && actualLetterDone && false)
+  if ((state == STATE_IDLE || state == STATE_DRAWING || state == STATE_READING) && S_Button && actualLetterDone)
   {
     state = STATE_CLEARBUFFER;
     clearBuffer = true;
@@ -426,6 +429,16 @@ void actions()
     u8g2.drawStr(0, 60, "You can send!");
     u8g2.sendBuffer();
     motorsDisable();
+    if (S_Button || penCal)
+    {
+      penCal = true;
+      penDown();
+      if (ServoState == 0)
+      {
+        penCal = false;
+      }
+    }
+    
     break;
 
   case STATE_DRAWING:
@@ -550,6 +563,7 @@ void actions()
       state = STATE_IDLE;
       letter_state = 0;
       actualLetterDone = true;
+      currentX = 0.0;
       break;
     }
     digitalWrite(LED_READY, LOW);
@@ -577,6 +591,7 @@ void actions()
       moveXY_DDA(calculatedResetX + SPACE_W, -resetPositionY, STEP_DELAY_US);
       break;
     case 3:
+      Serial.println(resetPositionY);
       resetPositionX = 0.0;
       resetPositionY = 0.0;
       calculatedResetX = 0.0;
@@ -649,12 +664,15 @@ void moveXY_DDA(float x_cm, float y_cm, int stepDelayUs)
   {
   case 0:
   {
+    currentX = currentX + x_cm;
     draw_state = 1;
     float stepsX_f = fabs(x_cm * STEPS_PER_CM);
     float stepsY_f = fabs(y_cm * STEPS_PER_CM);
 
     stepsX = lround(stepsX_f);
     stepsY = lround(stepsY_f);
+
+    stepErrorX = 0;
 
     stepErrorX = stepErrorX + (stepsX_f - stepsX);
     stepErrorY = stepErrorY + (stepsY_f - stepsY);
@@ -668,7 +686,6 @@ void moveXY_DDA(float x_cm, float y_cm, int stepDelayUs)
       stepsY = stepsY + lround(stepErrorY);
     }
 
-    currentX = currentX + x_cm;
 
     if (countPosition)
     {
@@ -776,6 +793,7 @@ void drawArc(float radius_cm, float startAngle, float endAngle, int segments, in
       dx = x - prevX;
       dy = y - prevY;
       drawArc_state = 1;
+      variableStepDelayUs = variableStepDelayUs * 2;
       break;
 
     case 1:
@@ -786,6 +804,8 @@ void drawArc(float radius_cm, float startAngle, float endAngle, int segments, in
     case 2: // kommt von moveXY_DDA via drawArc_state++
       prevX = x;
       prevY = y;
+
+      variableStepDelayUs = STEP_DELAY_US;
 
       if (arcCounter >= savedSegments)
       {
@@ -1558,7 +1578,7 @@ void drawC()
     penUp();
     break;
   case 1:
-    moveXY_DDA(r + LETTER_W / 6, LETTER_H, variableStepDelayUs);
+    moveXY_DDA(r + LETTER_W / 6, 0, variableStepDelayUs);
     break;
   case 2:
     penDown();
@@ -1567,7 +1587,7 @@ void drawC()
     moveXY_DDA(-LETTER_W / 6, 0, variableStepDelayUs);
     break;
   case 4:
-    drawArc(r, PI / 2, 3 * PI / 2, 6, variableStepDelayUs);
+    drawArc(r, PI * 3/2, PI/ 2, 7, variableStepDelayUs);
     break;
   case 5:
     moveXY_DDA(LETTER_W / 6, 0, variableStepDelayUs);
@@ -2634,7 +2654,7 @@ void drawf()
     penDown();
     break;
   case 3:
-    drawArc(r, PI / 2, PI, 10, variableStepDelayUs);
+    drawArc(r, PI / 2, PI, 5, variableStepDelayUs);
     break;
   case 4:
     moveXY_DDA(0, -LETTER_H * 0.8, variableStepDelayUs);
@@ -2959,7 +2979,7 @@ void drawn()
     penDown();
     break;
   case 5:
-    drawArc(r, PI, PI * 0.1, 10, variableStepDelayUs);
+    drawArc(r, PI, PI * 0.1, 5, variableStepDelayUs);
     break;
   case 6:
     moveXY_DDA(0, -(LETTER_H * 0.7 - LETTER_H * 0.25), variableStepDelayUs);
@@ -3219,7 +3239,7 @@ void drawu()
     penUp();
     break;
   case 7:
-    moveXY_DDA(-0.1, -(LETTER_H * 0.6 - r), variableStepDelayUs);
+    moveXY_DDA(0, -(LETTER_H * 0.6 - r), variableStepDelayUs);
     break;
   case 8:
     penDown();
@@ -3449,7 +3469,7 @@ void setup()
   MeinTaster.interval(40);
   u8g2.begin();
 
-  state = STATE_IDLE;
+  //state = STATE_IDLE;
 
   resetPositionX = 0.0;
   resetPositionY = 0.0;

@@ -56,7 +56,7 @@ float MAX_HEIGTH = 14.0;
 bool settings = false;
 String wholeSetting = "";
 
-int  state = STATE_IDLE; // changed from homing
+int state = STATE_IDLE; // changed from homing
 int letter_state = 0;
 int remember_letter_state = 0;
 int draw_state = 0;
@@ -127,6 +127,7 @@ bool sensor2Triggered = false;
 bool arcReset = false;
 bool clearBuffer = true;
 bool penCal = false;
+bool wasCR = false;
 
 void read();
 void transsitions();
@@ -356,10 +357,9 @@ void read()
 }
 
 void transsitions()
-{ 
+{
   if (state == STATE_READING)
   {
-    Serial.println(currentX);
     if (settings && (c != '{') && (c != '}'))
       wholeSetting = wholeSetting + c;
     if (c == '{')
@@ -376,24 +376,22 @@ void transsitions()
     else if (c == '\r')
     {
       state = STATE_NEW_LINE;
+      wasCR = true;
     }
     else if ((c == '\n') && !settings)
-      state = STATE_NEW_LINE;
+    {
+      if (!wasCR)
+      {
+        state = STATE_NEW_LINE;
+      }
+      wasCR = false;
+    }
     else if (!settings)
       drawLetter(c);
     else
     {
       state = STATE_IDLE;
       actualLetterDone = true;
-    }
-    if (currentX + LETTER_W > MAX_WIDTH)
-    {
-      if (currentY + LINE_H > MAX_HEIGTH)
-      {
-        state = STATE_HOMING;
-      }
-      else
-        state = STATE_NEW_LINE;
     }
   }
   if ((state == STATE_IDLE || state == STATE_DRAWING || state == STATE_READING) && S_Button && actualLetterDone)
@@ -405,11 +403,23 @@ void transsitions()
   }
   if (Serial.available() && state != RESET_POSITION && actualLetterDone && state != STATE_NEW_LINE && state != AFTER_HOMING_NEWLINE && state != STATE_HOMING)
   {
-    state = STATE_READING;
-    c = Serial.read();
-    actualLetterDone = false;
-    displayUpdate = true;
-    letter_state = 0;
+    if (currentX + (LETTER_W * 2.5) > MAX_WIDTH)
+    {
+      if (currentY + LINE_H > MAX_HEIGTH)
+      {
+        state = STATE_HOMING;
+      }
+      else
+        state = STATE_NEW_LINE;
+    }
+    else
+    {
+      state = STATE_READING;
+      c = Serial.read();
+      actualLetterDone = false;
+      displayUpdate = true;
+      letter_state = 0;
+    }
   }
 }
 
@@ -438,7 +448,7 @@ void actions()
         penCal = false;
       }
     }
-    
+
     break;
 
   case STATE_DRAWING:
@@ -512,6 +522,7 @@ void actions()
       state = AFTER_HOMING_NEWLINE;
       letter_state = 0;
       actualLetterDone = true;
+      Serial.println("Schritt2");
       break;
     }
     break;
@@ -556,7 +567,7 @@ void actions()
     switch (letter_state)
     {
     case 0:
-      moveXY_DDA(0, -LINE_H * 1.5, variableStepDelayUs);
+      moveXY_DDA(LETTER_W/2,  -LINE_H * 1.5, variableStepDelayUs);
       break;
 
     case 1:
@@ -564,6 +575,7 @@ void actions()
       letter_state = 0;
       actualLetterDone = true;
       currentX = 0.0;
+      Serial.println("Schritt3");
       break;
     }
     digitalWrite(LED_READY, LOW);
@@ -685,7 +697,6 @@ void moveXY_DDA(float x_cm, float y_cm, int stepDelayUs)
     {
       stepsY = stepsY + lround(stepErrorY);
     }
-
 
     if (countPosition)
     {
@@ -879,13 +890,13 @@ void draw0()
     penDown();
     break;
   case 3:
-    drawArc(r, PI, 2 * PI, 5, variableStepDelayUs);
+    drawArc(r, PI, 2 * PI, 10, variableStepDelayUs);
     break;
   case 4:
     moveXY_DDA(0, LETTER_H / 3, variableStepDelayUs);
     break;
   case 5:
-    drawArc(r, 0, PI, 5, variableStepDelayUs);
+    drawArc(r, 0, PI, 10, variableStepDelayUs);
     break;
   case 6:
     moveXY_DDA(0, -LETTER_H / 3, variableStepDelayUs);
@@ -1587,7 +1598,7 @@ void drawC()
     moveXY_DDA(-LETTER_W / 6, 0, variableStepDelayUs);
     break;
   case 4:
-    drawArc(r, PI * 3/2, PI/ 2, 7, variableStepDelayUs);
+    drawArc(r, PI * 3 / 2, PI / 2, 7, variableStepDelayUs);
     break;
   case 5:
     moveXY_DDA(LETTER_W / 6, 0, variableStepDelayUs);
@@ -3469,7 +3480,8 @@ void setup()
   MeinTaster.interval(40);
   u8g2.begin();
 
-  //state = STATE_IDLE;
+  servoTime = millis();
+  // state = STATE_IDLE;
 
   resetPositionX = 0.0;
   resetPositionY = 0.0;

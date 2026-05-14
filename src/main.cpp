@@ -137,6 +137,9 @@ bool penCal = false;
 bool wasCR = false;
 bool goToNewLine = false;
 
+bool drawDotEnd = false;
+bool drawCommaEnd = false;
+
 void read();
 void transsitions();
 void actions();
@@ -386,6 +389,10 @@ void transsitions()
     }
     else if ((c == '\n') && !settings)
     {
+      state = STATE_IDLE;
+      actualLetterDone = true;
+      displayUpdate = false;
+      letter_state = 0;
     }
     else if (!settings)
       drawLetter(c);
@@ -404,7 +411,7 @@ void transsitions()
   }
   if (Serial.available() && state != RESET_POSITION && actualLetterDone && state != STATE_NEW_LINE && state != AFTER_HOMING_NEWLINE && state != STATE_HOMING)
   {
-    if (currentX + (LETTER_W * 2) > MAX_WIDTH)
+    if (currentX + (LETTER_W * 2.5) > MAX_WIDTH)
     {
       if (currentY + LINE_H > MAX_HEIGTH)
       {
@@ -511,6 +518,16 @@ void actions()
       {
         drawConnection = true;
         actualLetterDone = false;
+        if (Serial.peek() == ',')
+        {
+          drawCommaEnd = true;
+          Serial.read();
+        }
+        if (Serial.peek() == '.')
+        {
+          drawDotEnd = true;
+          Serial.read();
+        }
       }
       else
       {
@@ -526,7 +543,19 @@ void actions()
         drawConnection = false;
         goToNewLine = true;
       }
-      drawMinus();
+      if (goToNewLine)
+      {
+        if (drawDotEnd)
+        {
+          drawDot();
+        }
+        if (drawCommaEnd)
+        {
+          drawComma();
+        }else
+          drawMinus();
+      }else
+        stateNewLine++;
       break;
     case 2:
       penUp();
@@ -556,6 +585,8 @@ void actions()
       letter_state = 0;
       stateNewLine = 0;
       goToNewLine = false;
+      drawCommaEnd = false;
+      drawDotEnd = false;
       actualLetterDone = true;
       break;
     }
@@ -1280,6 +1311,7 @@ void drawDot()
     state = RESET_POSITION;
     letter_state = 0;
     ServoState = 0;
+    stateNewLine++;
     break;
   }
 }
@@ -1301,6 +1333,7 @@ void drawComma()
     state = RESET_POSITION;
     letter_state = 0;
     ServoState = 0;
+    stateNewLine++;
     break;
   }
 }

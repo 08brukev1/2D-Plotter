@@ -20,8 +20,10 @@
 #define DIR2_PIN 15
 #define STEP2_PIN 2
 #define ENABLE2_PIN 17
-// ----------------------- Servo pin ------------------------------
+// ----------------------- Servo ------------------------------
 #define SERVO_PIN 13
+#define debouncePenUp 100
+#define debouncePenDown 200
 // ----------------------- Display pins ------------------------------
 #define SCL 22
 #define SDA 21
@@ -43,6 +45,11 @@
 // ----------------------- Values for the servo --------------------
 #define SERVO_UP 30   // Position servo up
 #define SERVO_DOWN 90 // Position servo down
+
+#include "symbolsNumbers.h"
+#include "lowercaseLetters.h"
+#include "uppercaseLetters.h"
+
 // ----------------------- Motor settings in cm --------------------
 double LETTER_W = 0.8;  // Width for each character
 double LETTER_H = 1.0;  // Heigth for each character
@@ -68,21 +75,12 @@ double resetPositionX = 0.0;    // Counts the exact position after each step for
 double resetPositionY = 0.0;    // Counts the exact position after each step for the y-achsis
 
 double calculatedResetX = 0.0;  // X reset-length for each character: MaxWidth - resetPositionX
+bool countPosition = false;   // Bool if it should count the current X position or not
 
-double stepErrorX = 0;
-double stepErrorY = 0;
-
-float tempX = 0.0;
-float tempY = 0.0;
-
-double arcRadius = 0.0;
-
-double prevX = 0.0;
-double prevY = 0.0;
-double angleStep = 0.0;
-
-float stepsX_f = 0.0;
-float stepsY_f = 0.0;
+// ----------------------- Variables for drawArc | roundings ------------------------------
+double prevX = 0.0;             // Saves the value of the start for each rounding - X-Achsis
+double prevY = 0.0;             // Here for Y-Achsis
+double angleStep = 0.0;         // Calculation of each segment and their angle
 
 double theta = 0.0;
 double x = 0.0;
@@ -90,57 +88,47 @@ double y = 0.0;
 double dx = 0.0;
 double dy = 0.0;
 
-bool countRealWidth = false;
-double maxWidth = 0.0;
+// ----------------------- Variables for normal moves in X and Y ------------------------------
+float stepsX = 0.0;           // Calculates the steps for each move
+float stepsY = 0.0;           // Same for Y-Achsis
 
-bool countPosition = false;
-bool writeStatus = true;
-bool goTrough = true;
-bool heightAlreadySet = false;
-bool drawConnection = false;
-
-long stepsY = 0;
-long stepsX = 0;
 long maxSteps = 0;
 long errorX = 0;
 long errorY = 0;
 long stepCounter = 0;
 
 long long XYTime = micros();
+double maxWidth = 0.0;
+
+bool drawConnection = false;    // Bool if the plotter should draw a minus after a new line because the word continues
+
+// ----------------------- Servo variables ------------------------------
 long long servoTime = 0;
+long long ButtonFirstTime = millis();
+long long ButtonFirstTime = millis();
 
-long long firstTime = millis();
-long long secondTime = millis();
-
-long arcCounter = 0;
-int savedSegments = 0;
-
-unsigned long vergangeneZeit = 0;
-int debouncePenUp = 100;
-int debouncePenDown = 200;
+long arcCounter = 0;       // Counts written segments
+int segments = 0;          // Amount of segments to draw for a rounding
 
 int XYState = 0;
 int ServoState = 0;
-int stateNewLine = 0;
+int stateNewLine = 0;   // State for a mini state machine which switches trough the newLine state
 
-char c;
-char nextChar;
-int letterToDraw;
+char c;                 // Char to draw
+char nextChar;          // Next char to draw - only used to show it on the display
+int letterToDraw;       // Variable to select the character in the struct and the matching function
 
-bool S_Button = false;
-bool drawing_Done = false;
-bool actualLetterDone = true;
-bool displayUpdate = false;
-bool sensor1Triggered = false;
+bool S_Button = false;          // State of the button
+bool actualLetterDone = true;   // Shows if the current letter is done or not
+bool displayUpdate = false;     // To update the display when a new character arrives
+bool sensor1Triggered = false;  
 bool sensor2Triggered = false;
-bool arcReset = false;
-bool clearBuffer = true;
-bool penCal = false;
-bool wasCR = false;
-bool goToNewLine = false;
+bool arcReset = false;          // If a new rounding begins, this bool goes on true to reset variables for the drawArc function
+bool clearBuffer = true;        // After stopping the writing process, the buffer will be read out. This variable shows if the buffer has to be read out or not
+bool goToNewLine = false;       // Indicates if the plotter should draw a "-", "," or "." to finish the line properly
 
-bool drawDotEnd = false;
-bool drawCommaEnd = false;
+bool drawDotEnd = false;        // Shows if it should draw a dot
+bool drawCommaEnd = false;      // Shows if it should draw a comma
 
 void read();
 void transsitions();
@@ -338,13 +326,13 @@ void read()
 
   if (MeinTaster.rose() && state == STATE_IDLE)
   {
-    firstTime = millis();
+    ButtonFirstTime = millis();
   }
 
   if (MeinTaster.fell() && state == STATE_IDLE)
   {
-    secondTime = millis();
-    if (secondTime - firstTime > 2000)
+    ButtonFirstTime = millis();
+    if (ButtonFirstTime - ButtonFirstTime > 2000)
     {
       state = STATE_HOMING;
     }
@@ -453,15 +441,6 @@ void actions()
     u8g2.drawStr(0, 60, "You can send!");
     u8g2.sendBuffer();
     motorsDisable();
-    if (S_Button || penCal)
-    {
-      penCal = true;
-      penDown();
-      if (ServoState == 0)
-      {
-        penCal = false;
-      }
-    }
     if (LETTER_H != 1.0)
     {
       LETTER_W = 0.8;
@@ -657,7 +636,6 @@ void actions()
     motorsEnable();
 
     variableStepDelayUs = STEP_DELAY_US;
-    heightAlreadySet = false;
     break;
 
   case RESET_POSITION:
@@ -680,8 +658,6 @@ void actions()
       Serial.println(maxWidth);
       resetPositionX = 0.0;
       resetPositionY = 0.0;
-      tempX = 0.0;
-      tempY = 0.0;
       calculatedResetX = 0.0;
       maxWidth = 0.0;
       letter_state = 0;
@@ -758,13 +734,13 @@ void moveXY_DDA(float x_cm, float y_cm, int stepDelayUs)
   case 0:
   {
     draw_state = 1;
-    stepsX_f = fabs(x_cm * STEPS_PER_CM);
-    stepsY_f = fabs(y_cm * STEPS_PER_CM);
+    stepsX = fabs(x_cm * STEPS_PER_CM);
+    stepsY = fabs(y_cm * STEPS_PER_CM);
 
     digitalWrite(DIR1_PIN, x_cm >= 0 ? LOW : HIGH);
     digitalWrite(DIR2_PIN, y_cm >= 0 ? HIGH : LOW);
 
-    maxSteps = max(stepsX_f, stepsY_f);
+    maxSteps = max(stepsX, stepsY);
     if (maxSteps == 0.0)
     {
       return;
@@ -787,8 +763,8 @@ void moveXY_DDA(float x_cm, float y_cm, int stepDelayUs)
     {
       if (XYState == 0)
       {
-        errorX += stepsX_f;
-        errorY += stepsY_f;
+        errorX += stepsX;
+        errorY += stepsY;
         if (errorX >= maxSteps)
         {
           digitalWrite(STEP1_PIN, HIGH);
@@ -863,7 +839,7 @@ void drawArc(float radius_cm, float startAngle, float endAngle, int segments, in
     arc_state = 1;
     arcCounter = 0;
     drawSegments = 0;
-    savedSegments = segments;
+    segments = segments;
 
     angleStep = (endAngle - startAngle) / segments;
 
@@ -899,7 +875,7 @@ void drawArc(float radius_cm, float startAngle, float endAngle, int segments, in
 
       variableStepDelayUs = STEP_DELAY_US;
 
-      if (arcCounter >= savedSegments)
+      if (arcCounter >= segments)
       {
         arc_state = 0;
         drawSegments = 0;
@@ -3636,8 +3612,6 @@ void setup()
 
   resetPositionX = 0.0;
   resetPositionY = 0.0;
-  tempX = 0.0;
-  tempY = 0.0;
   calculatedResetX = 0.0;
   maxWidth = 0.0;
   letter_state = 0;
@@ -3649,8 +3623,6 @@ void drawLetter(char c)
 {
   resetPositionX = 0.0;
   resetPositionY = 0.0;
-  tempX = 0.0;
-  tempY = 0.0;
   countPosition = true;
 
   for (char i = '!'; i < '}'; i++)

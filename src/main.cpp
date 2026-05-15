@@ -3,72 +3,71 @@
 #include <ESP32Servo.h>
 #include <U8g2lib.h>
 #include <Wire.h>
-
-// States
-#define STATE_IDLE 0
-#define STATE_DRAWING 1
-#define STATE_HOMING 2
-#define STATE_NEW_LINE 3
-#define AFTER_HOMING_NEWLINE 4
-#define RESET_POSITION 5
-#define MOVEXY 6
-#define STATE_READING 7
-#define STATE_CLEARBUFFER 8
-
-// Motor 1
-#define DIR1_PIN 18
-#define STEP1_PIN 19
-#define ENABLE1_PIN 23
-// Motor 2
+// ----------------------- States ------------------------------
+#define STATE_IDLE 0                 // Idle state - waiting to read
+#define STATE_DRAWING 1              // State while drawing
+#define STATE_HOMING 2               // State reset the plotter - x and y-achsis go to zero
+#define STATE_NEW_LINE 3             // State after finishing a line
+#define STATE_AFTER_HOMING_NEWLINE 4 // State after every homing and new line to reset all parameters and going one line down
+#define RESET_POSITION 5             // State after every character to reset their position, so that all characters align properly
+#define STATE_READING 7              // After seeing that characters were sent to the plotter
+#define STATE_CLEARBUFFER 8          // To clear the buffer, after stopping the writing process - All characters will be read out the buffer
+// ----------------------- Motor1 = X-Achsis ------------------------------
+#define DIR1_PIN 18    // Pin for the direction
+#define STEP1_PIN 19   // Pin for each step
+#define ENABLE1_PIN 23 // Motor state: LOW = OFF | HIGH = ON
+// ----------------------- Motor2 = Y-Achsis ------------------------------
 #define DIR2_PIN 15
 #define STEP2_PIN 2
 #define ENABLE2_PIN 17
-// Servo
+// ----------------------- Servo pin ------------------------------
 #define SERVO_PIN 13
-// Display
+// ----------------------- Display pins ------------------------------
 #define SCL 22
 #define SDA 21
-// LEDs
+// ----------------------- LED pins ------------------------------
 #define LED_READY 26
 #define LED_BUSY 27
-// Taster
-#define Taster 36
-// Sensoren
-#define Sensor1 14
-#define Sensor2 33
-// Step settings
-#define STEPS_PER_MM 4.76
-#define STEPS_PER_CM (STEPS_PER_MM * 10.0)
-#define STEP_DELAY_US 700
-#define STEP_DELAY_US_FREE 300
-long variableStepDelayUs = STEP_DELAY_US;
-// Servo settings
-#define SERVO_UP 30
-#define SERVO_DOWN 90
-// Letter settings
-double LETTER_W = 0.8;
-double LETTER_H = 1.0;
-double SPACE_W = 0.2;
-double LINE_H = 1.2;
-double MAX_WIDTH = 14;
-double MAX_HEIGTH = 14;
+// ----------------------- Button pin ------------------------------
+#define Button 36
+// ----------------------- Sensor pins ------------------------------
+#define Sensor1 14 // Sensor for the x-achsis
+#define Sensor2 33 // Sensor for the y-achsis
+// ----------------------- Constant motor values --------------------
+#define STEPS_PER_MM 4.76                  // How many steps per millimeter
+#define STEPS_PER_CM (STEPS_PER_MM * 10.0) // mm steps converted to cm
 
-bool settings = false;
-String wholeSetting = "";
+// Delay for each step, this parameter controlls the speed of the motor
+#define STEP_DELAY_US 700      // Normal speed while writing
+#define STEP_DELAY_US_FREE 300 // Speed while homing
+// ----------------------- Values for the servo --------------------
+#define SERVO_UP 30   // Position servo up
+#define SERVO_DOWN 90 // Position servo down
+// ----------------------- Motor settings in cm --------------------
+double LETTER_W = 0.8;  // Width for each character
+double LETTER_H = 1.0;  // Heigth for each character
+double SPACE_W = 0.2;   // Space between each character
+double LINE_H = 1.2;    // Heigth of every line
+double MAX_WIDTH = 14;  // Maximum width to draw
+double MAX_HEIGTH = 14; // Maximum heigth to draw
 
-int state = STATE_IDLE; // changed from homing
-int letter_state = 0;
-int remember_letter_state = 0;
-int draw_state = 0;
-int arc_state = 0;
-int drawArc_state = 0;
-int oldLetterState;
+// Speed of the motor
+long variableStepDelayUs = STEP_DELAY_US; // This value can be set to STEP_DELAY_US for drawing or STEP_DELAY_US_FREE for homing or new line
+// ----------------------- Setting variables ------------------------------
+bool settings = false;    // This bool shows, if the plotter reads the heigth or other characters to write
+String wholeSetting = ""; // This is the string which contains the heigth
+// ----------------------- State variables------------------------------
+int state = STATE_IDLE;        // Main state of the plotter
+int letter_state = 0;          // State for each character - every character is a mini state machine which is controlled by this state
+int remember_letter_state = 0; // State to save the letter_state, when the plotter draws a rounding. More explained in the drawArc function
+int draw_state = 0;            // State which is used in the moveXY_DDA function for a mini state machine. More explained in the moveXY_DDA function 
+int arc_state = 0;             // State in the drawArc function for a mini state machine
+int drawSegments = 0;          // State to draw each segement in the drawArc function
+// ----------------------- Variables to reset characters ------------------------------
+double resetPositionX = 0.0;    // Counts the exact position after each step for the x-achsis
+double resetPositionY = 0.0;    // Counts the exact position after each step for the y-achsis
 
-double resetPositionX = 0.0;
-double resetPositionY = 0.0;
-
-double calculatedResetX = 0.0;
-double calculatedResetY = 0.0;
+double calculatedResetX = 0.0;  
 
 double stepErrorX = 0;
 double stepErrorY = 0;
@@ -361,7 +360,7 @@ void read()
   if ((state == STATE_HOMING && digitalRead(Sensor1) && digitalRead(Sensor2)) ||
       (state == STATE_NEW_LINE && digitalRead(Sensor1)))
   {
-    state = AFTER_HOMING_NEWLINE;
+    state = STATE_AFTER_HOMING_NEWLINE;
     letter_state = 0;
     draw_state = 0;
   }
@@ -383,6 +382,9 @@ void transsitions()
       LINE_H = LETTER_H * 1.6;
       wholeSetting = "";
       state = STATE_IDLE;
+      actualLetterDone = true;
+      displayUpdate = false;
+      letter_state = 0;
     }
     else if (c == '\r')
     {
@@ -409,7 +411,7 @@ void transsitions()
     S_Button = false;
     actualLetterDone = false;
   }
-  if (Serial.available() && state != RESET_POSITION && actualLetterDone && state != STATE_NEW_LINE && state != AFTER_HOMING_NEWLINE && state != STATE_HOMING)
+  if (Serial.available() && state != RESET_POSITION && actualLetterDone && state != STATE_NEW_LINE && state != STATE_AFTER_HOMING_NEWLINE && state != STATE_HOMING || settings)
   {
     if (currentX + (LETTER_W * 2.5) > MAX_WIDTH)
     {
@@ -457,7 +459,12 @@ void actions()
         penCal = false;
       }
     }
-
+    if (LETTER_H != 1.0)
+    {
+      LETTER_W = 0.8;
+      LINE_H = 1.6;
+      LETTER_H = 1.0;
+    }
     break;
 
   case STATE_DRAWING:
@@ -523,11 +530,15 @@ void actions()
           drawCommaEnd = true;
           Serial.read();
         }
+        else
+          drawCommaEnd = false;
         if (Serial.peek() == '.')
         {
           drawDotEnd = true;
           Serial.read();
         }
+        else
+          drawCommaEnd = false;
       }
       else
       {
@@ -552,9 +563,11 @@ void actions()
         if (drawCommaEnd)
         {
           drawComma();
-        }else
+        }
+        else
           drawMinus();
-      }else
+      }
+      else
         stateNewLine++;
       break;
     case 2:
@@ -581,7 +594,7 @@ void actions()
     case 5:
       currentY = currentY + LINE_H;
       variableStepDelayUs = STEP_DELAY_US;
-      state = AFTER_HOMING_NEWLINE;
+      state = STATE_AFTER_HOMING_NEWLINE;
       letter_state = 0;
       stateNewLine = 0;
       goToNewLine = false;
@@ -628,7 +641,7 @@ void actions()
     currentY = 0.0;
     variableStepDelayUs = STEP_DELAY_US;
     break;
-  case AFTER_HOMING_NEWLINE:
+  case STATE_AFTER_HOMING_NEWLINE:
     variableStepDelayUs = STEP_DELAY_US_FREE;
     switch (letter_state)
     {
@@ -668,15 +681,12 @@ void actions()
       moveXY_DDA(calculatedResetX + SPACE_W, -resetPositionY, STEP_DELAY_US);
       break;
     case 3:
-      Serial.println(calculatedResetX);
-      Serial.println(calculatedResetY);
       Serial.println(maxWidth);
       resetPositionX = 0.0;
       resetPositionY = 0.0;
       tempX = 0.0;
       tempY = 0.0;
       calculatedResetX = 0.0;
-      calculatedResetY = 0.0;
       maxWidth = 0.0;
       letter_state = 0;
       ServoState = 0;
@@ -847,7 +857,7 @@ void moveXY_DDA(float x_cm, float y_cm, int stepDelayUs)
           draw_state = 0;
           letter_state++;
           ServoState = 0;
-          drawArc_state = 2;
+          drawSegments = 2;
         }
         else
           stepCounter++;
@@ -873,7 +883,7 @@ void drawArc(float radius_cm, float startAngle, float endAngle, int segments, in
   case 0:
     arc_state = 1;
     arcCounter = 0;
-    drawArc_state = 0;
+    drawSegments = 0;
     savedSegments = segments;
 
     angleStep = (endAngle - startAngle) / segments;
@@ -885,7 +895,7 @@ void drawArc(float radius_cm, float startAngle, float endAngle, int segments, in
     break;
 
   case 1:
-    switch (drawArc_state)
+    switch (drawSegments)
     {
     case 0:
       arcCounter++;
@@ -895,7 +905,7 @@ void drawArc(float radius_cm, float startAngle, float endAngle, int segments, in
       y = radius_cm * sin(theta);
       dx = x - prevX;
       dy = y - prevY;
-      drawArc_state = 1;
+      drawSegments = 1;
       variableStepDelayUs = variableStepDelayUs * 2;
       break;
 
@@ -904,7 +914,7 @@ void drawArc(float radius_cm, float startAngle, float endAngle, int segments, in
       letter_state = remember_letter_state;
       break;
 
-    case 2: // kommt von moveXY_DDA via drawArc_state++
+    case 2: // kommt von moveXY_DDA via drawSegments++
       prevX = x;
       prevY = y;
 
@@ -913,13 +923,13 @@ void drawArc(float radius_cm, float startAngle, float endAngle, int segments, in
       if (arcCounter >= savedSegments)
       {
         arc_state = 0;
-        drawArc_state = 0;
+        drawSegments = 0;
         letter_state++; // erst JETZT letter_state weiterzählen
         arcReset = true;
       }
       else
       {
-        drawArc_state = 0;
+        drawSegments = 0;
         arc_state = 1;
       }
       break;
@@ -3628,7 +3638,7 @@ void setup()
 
   pinMode(LED_BUILTIN, OUTPUT);
 
-  pinMode(Taster, INPUT);
+  pinMode(Button, INPUT);
 
   pinMode(LED_BUSY, OUTPUT);
   pinMode(LED_READY, OUTPUT);
@@ -3638,7 +3648,7 @@ void setup()
 
   penServo.write(SERVO_UP);
   penServo.attach(SERVO_PIN, 500, 2400);
-  MeinTaster.attach(Taster);
+  MeinTaster.attach(Button);
   MeinTaster.interval(40);
   u8g2.begin();
 
@@ -3650,7 +3660,6 @@ void setup()
   tempX = 0.0;
   tempY = 0.0;
   calculatedResetX = 0.0;
-  calculatedResetY = 0.0;
   maxWidth = 0.0;
   letter_state = 0;
   ServoState = 0;

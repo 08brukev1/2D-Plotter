@@ -67,7 +67,7 @@ int drawSegments = 0;          // State to draw each segement in the drawArc fun
 double resetPositionX = 0.0;    // Counts the exact position after each step for the x-achsis
 double resetPositionY = 0.0;    // Counts the exact position after each step for the y-achsis
 
-double calculatedResetX = 0.0;  
+double calculatedResetX = 0.0;  // X reset-length for each character: MaxWidth - resetPositionX
 
 double stepErrorX = 0;
 double stepErrorY = 0;
@@ -80,6 +80,9 @@ double arcRadius = 0.0;
 double prevX = 0.0;
 double prevY = 0.0;
 double angleStep = 0.0;
+
+float stepsX_f = 0.0;
+float stepsY_f = 0.0;
 
 double theta = 0.0;
 double x = 0.0;
@@ -585,13 +588,6 @@ void actions()
       }
       break;
     case 4:
-      moveXY_DDA(0, -LINE_H, variableStepDelayUs);
-      if (draw_state == 0)
-      {
-        stateNewLine++;
-      }
-      break;
-    case 5:
       currentY = currentY + LINE_H;
       variableStepDelayUs = STEP_DELAY_US;
       state = STATE_AFTER_HOMING_NEWLINE;
@@ -762,30 +758,13 @@ void moveXY_DDA(float x_cm, float y_cm, int stepDelayUs)
   case 0:
   {
     draw_state = 1;
-    float stepsX_f = fabs(x_cm * STEPS_PER_CM);
-    float stepsY_f = fabs(y_cm * STEPS_PER_CM);
-
-    stepsX = stepsX_f;
-    stepsY = stepsY_f;
-
-    stepErrorX = 0;
-
-    stepErrorX = stepErrorX + (stepsX_f - stepsX);
-    stepErrorY = stepErrorY + (stepsY_f - stepsY);
-
-    if (lround(stepErrorX) == 1)
-    {
-      stepsX = stepsX + lround(stepErrorX);
-    }
-    if (lround(stepErrorY) == 1)
-    {
-      stepsY = stepsY + lround(stepErrorY);
-    }
+    stepsX_f = fabs(x_cm * STEPS_PER_CM);
+    stepsY_f = fabs(y_cm * STEPS_PER_CM);
 
     digitalWrite(DIR1_PIN, x_cm >= 0 ? LOW : HIGH);
     digitalWrite(DIR2_PIN, y_cm >= 0 ? HIGH : LOW);
 
-    maxSteps = max(stepsX, stepsY);
+    maxSteps = max(stepsX_f, stepsY_f);
     if (maxSteps == 0.0)
     {
       return;
@@ -808,8 +787,8 @@ void moveXY_DDA(float x_cm, float y_cm, int stepDelayUs)
     {
       if (XYState == 0)
       {
-        errorX += stepsX;
-        errorY += stepsY;
+        errorX += stepsX_f;
+        errorY += stepsY_f;
         if (errorX >= maxSteps)
         {
           digitalWrite(STEP1_PIN, HIGH);

@@ -38,7 +38,7 @@ void draw0()
   case 8:
     state = RESET_POSITION;
     letter_state = 0;
-    ServoState = 0;
+    servo_state = 0;
     break;
   }
 }
@@ -68,7 +68,7 @@ void draw1()
   case 6:
     state = RESET_POSITION;
     letter_state = 0;
-    ServoState = 0;
+    servo_state = 0;
     break;
   }
 }
@@ -104,7 +104,7 @@ void draw2()
   case 7:
     state = RESET_POSITION;
     letter_state = 0;
-    ServoState = 0;
+    servo_state = 0;
     break;
   }
 }
@@ -142,7 +142,7 @@ void draw3()
   case 8:
     state = RESET_POSITION;
     letter_state = 0;
-    ServoState = 0;
+    servo_state = 0;
     break;
   }
 }
@@ -184,7 +184,7 @@ void draw4()
   case 10:
     state = RESET_POSITION;
     letter_state = 0;
-    ServoState = 0;
+    servo_state = 0;
     break;
   }
 }
@@ -218,7 +218,7 @@ void draw5()
   case 7:
     state = RESET_POSITION;
     letter_state = 0;
-    ServoState = 0;
+    servo_state = 0;
     break;
   }
 }
@@ -259,7 +259,7 @@ void draw6()
   case 9:
     state = RESET_POSITION;
     letter_state = 0;
-    ServoState = 0;
+    servo_state = 0;
     break;
   }
 }
@@ -283,7 +283,7 @@ void draw7()
   case 4:
     state = RESET_POSITION;
     letter_state = 0;
-    ServoState = 0;
+    servo_state = 0;
     break;
   }
 }
@@ -323,7 +323,7 @@ void draw8()
   case 9:
     state = RESET_POSITION;
     letter_state = 0;
-    ServoState = 0;
+    servo_state = 0;
     break;
   }
 }
@@ -355,7 +355,7 @@ void draw9()
   case 6:
     state = RESET_POSITION;
     letter_state = 0;
-    ServoState = 0;
+    servo_state = 0;
     break;
   }
 }
@@ -376,7 +376,7 @@ void drawDot()
   case 3:
     state = RESET_POSITION;
     letter_state = 0;
-    ServoState = 0;
+    servo_state = 0;
     stateNewLine++;
     break;
   }
@@ -398,7 +398,7 @@ void drawComma()
   case 3:
     state = RESET_POSITION;
     letter_state = 0;
-    ServoState = 0;
+    servo_state = 0;
     stateNewLine++;
     break;
   }
@@ -438,7 +438,7 @@ void drawExclamation()
   case 9:
     state = RESET_POSITION;
     letter_state = 0;
-    ServoState = 0;
+    servo_state = 0;
     break;
   }
 }
@@ -482,7 +482,7 @@ void drawQuestion()
   case 10:
     state = RESET_POSITION;
     letter_state = 0;
-    ServoState = 0;
+    servo_state = 0;
     break;
   }
 }
@@ -518,7 +518,7 @@ void drawColon()
   case 8:
     state = RESET_POSITION;
     letter_state = 0;
-    ServoState = 0;
+    servo_state = 0;
     break;
   }
 }
@@ -554,7 +554,7 @@ void drawEqual()
   case 8:
     state = RESET_POSITION;
     letter_state = 0;
-    ServoState = 0;
+    servo_state = 0;
     break;
   }
 }
@@ -590,7 +590,7 @@ void drawPlus()
   case 8:
     state = RESET_POSITION;
     letter_state = 0;
-    ServoState = 0;
+    servo_state = 0;
     break;
   }
 }
@@ -615,7 +615,7 @@ void drawMinus()
     state = RESET_POSITION;
     actualLetterDone = true;
     letter_state = 0;
-    ServoState = 0;
+    servo_state = 0;
     stateNewLine++;
 
     break;
@@ -638,7 +638,7 @@ void drawSlash()
   case 3:
     state = RESET_POSITION;
     letter_state = 0;
-    ServoState = 0;
+    servo_state = 0;
     break;
   }
 }

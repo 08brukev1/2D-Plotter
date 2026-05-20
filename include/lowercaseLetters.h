@@ -43,7 +43,7 @@ void drawa()
   case 9:
     state = RESET_POSITION;
     letter_state = 0;
-    ServoState = 0;
+    servo_state = 0;
     break;
   }
 }
@@ -86,7 +86,7 @@ void drawb()
   case 10:
     state = RESET_POSITION;
     letter_state = 0;
-    ServoState = 0;
+    servo_state = 0;
     break;
   }
 }
@@ -114,7 +114,7 @@ void drawc()
   case 5:
     state = RESET_POSITION;
     letter_state = 0;
-    ServoState = 0;
+    servo_state = 0;
     break;
   }
 }
@@ -151,7 +151,7 @@ void drawd()
   case 8:
     state = RESET_POSITION;
     letter_state = 0;
-    ServoState = 0;
+    servo_state = 0;
     break;
   }
 }
@@ -182,7 +182,7 @@ void drawe()
   case 6:
     state = RESET_POSITION;
     letter_state = 0;
-    ServoState = 0;
+    servo_state = 0;
     break;
   }
 }
@@ -225,7 +225,7 @@ void drawf()
   case 10:
     state = RESET_POSITION;
     letter_state = 0;
-    ServoState = 0;
+    servo_state = 0;
     break;
   }
 }
@@ -271,7 +271,7 @@ void drawg()
   case 11:
     state = RESET_POSITION;
     letter_state = 0;
-    ServoState = 0;
+    servo_state = 0;
     break;
   }
 }
@@ -308,7 +308,7 @@ void drawh()
   case 8:
     state = RESET_POSITION;
     letter_state = 0;
-    ServoState = 0;
+    servo_state = 0;
     break;
   }
 }
@@ -341,7 +341,7 @@ void drawi()
   case 7:
     state = RESET_POSITION;
     letter_state = 0;
-    ServoState = 0;
+    servo_state = 0;
     break;
   }
 }
@@ -378,7 +378,7 @@ void drawj()
   case 8:
     state = RESET_POSITION;
     letter_state = 0;
-    ServoState = 0;
+    servo_state = 0;
     break;
   }
 }
@@ -414,7 +414,7 @@ void drawk()
   case 8:
     state = RESET_POSITION;
     letter_state = 0;
-    ServoState = 0;
+    servo_state = 0;
     break;
   }
 }
@@ -444,7 +444,7 @@ void drawl()
   case 6:
     state = RESET_POSITION;
     letter_state = 0;
-    ServoState = 0;
+    servo_state = 0;
     break;
   }
 }
@@ -500,7 +500,7 @@ void drawm()
   case 13:
     state = RESET_POSITION;
     letter_state = 0;
-    ServoState = 0;
+    servo_state = 0;
     break;
   }
 }
@@ -538,7 +538,7 @@ void drawn()
   case 8:
     state = RESET_POSITION;
     letter_state = 0;
-    ServoState = 0;
+    servo_state = 0;
     break;
   }
 }
@@ -567,7 +567,7 @@ void drawo()
   case 5:
     state = RESET_POSITION;
     letter_state = 0;
-    ServoState = 0;
+    servo_state = 0;
     break;
   }
 }
@@ -602,7 +602,7 @@ void drawp()
   case 7:
     state = RESET_POSITION;
     letter_state = 0;
-    ServoState = 0;
+    servo_state = 0;
     break;
   }
 }
@@ -643,7 +643,7 @@ void drawq()
   case 9:
     state = RESET_POSITION;
     letter_state = 0;
-    ServoState = 0;
+    servo_state = 0;
     break;
   }
 }
@@ -678,7 +678,7 @@ void drawr()
   case 7:
     state = RESET_POSITION;
     letter_state = 0;
-    ServoState = 0;
+    servo_state = 0;
     break;
   }
 }
@@ -710,7 +710,7 @@ void draws()
   case 6:
     state = RESET_POSITION;
     letter_state = 0;
-    ServoState = 0;
+    servo_state = 0;
     break;
   }
 }
@@ -754,7 +754,7 @@ void drawt()
   case 10:
     state = RESET_POSITION;
     letter_state = 0;
-    ServoState = 0;
+    servo_state = 0;
     break;
   }
 }
@@ -801,7 +801,7 @@ void drawu()
   case 11:
     state = RESET_POSITION;
     letter_state = 0;
-    ServoState = 0;
+    servo_state = 0;
     break;
   }
 }
@@ -831,7 +831,7 @@ void drawv()
   case 6:
     state = RESET_POSITION;
     letter_state = 0;
-    ServoState = 0;
+    servo_state = 0;
     break;
   }
 }
@@ -867,7 +867,7 @@ void draww()
   case 8:
     state = RESET_POSITION;
     letter_state = 0;
-    ServoState = 0;
+    servo_state = 0;
     break;
   }
 }
@@ -906,7 +906,7 @@ void drawx()
   case 9:
     state = RESET_POSITION;
     letter_state = 0;
-    ServoState = 0;
+    servo_state = 0;
     break;
   }
 }
@@ -945,7 +945,7 @@ void drawy()
   case 9:
     state = RESET_POSITION;
     letter_state = 0;
-    ServoState = 0;
+    servo_state = 0;
     break;
   }
 }
@@ -978,7 +978,7 @@ void drawz()
   case 7:
     state = RESET_POSITION;
     letter_state = 0;
-    ServoState = 0;
+    servo_state = 0;
     break;
   }
 }
